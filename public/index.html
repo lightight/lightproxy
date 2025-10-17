@@ -122,21 +122,59 @@
         margin: 0 !important;
     }
 
-    /* DATE/TIME PILL - COMPACT & CENTERED */
-    .datetime-container {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        background: rgba(255, 255, 255, 0.1) !important;
-        backdrop-filter: blur(20px) !important;
-        border-radius: 24px !important;
-        border: 1px solid rgba(255, 255, 255, 0.2) !important;
-        padding: 8px 20px !important;
-        margin: 0 auto !important;
-        max-width: 280px !important;
-        width: fit-content !important;
-        box-sizing: border-box !important;
-    }
+/* TOP BAR DATETIME - PERFECT MATCH + SUBTLE HOVER */
+#top-bar-wrapper {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 12px 20px !important;
+    gap: 1rem !important; /* 16px - matches space-x-4 */
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* LEFT GROUP */
+#top-bar-wrapper > .flex:first-child {
+    display: flex !important;
+    gap: 1rem !important; /* 16px */
+    flex-shrink: 0 !important;
+}
+
+/* CENTERED DATETIME - NOW PERFECTLY ALIGNED */
+#top-bar-wrapper .datetime-container {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.5rem !important; /* 8px between time/date */
+    background: var(--frosted-bg) !important;
+    backdrop-filter: blur(20px) !important;
+    border-radius: 9999px !important;
+    border: 1px solid var(--frosted-border) !important;
+    padding: 6px 16px !important;
+    min-width: auto !important;
+    width: fit-content !important;
+    flex-shrink: 0 !important; /* CRITICAL: Prevents shrinking */
+    margin: 0 !important; /* CRITICAL: No margins */
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* RIGHT GROUP */
+#top-bar-wrapper > .flex:last-child {
+    display: flex !important;
+    gap: 1rem !important; /* 16px */
+    flex-shrink: 0 !important;
+}
+
+/* SUBTLE HOVER - datetime only */
+#top-bar-wrapper .datetime-container:hover {
+    background: rgba(255, 255, 255, 0.12) !important;
+    border-color: rgba(255, 255, 255, 0.25) !important;
+}
+/* TRADITIONAL LAYOUT DATETIME (unchanged) */
+#stars-layout .datetime-container {
+    padding: 8px 20px !important;
+    max-width: 280px !important;
+}
 
     /* OVERRIDE ANY FULL-WIDTH FORCING */
     .datetime-container[style*="width: 100%"],
@@ -438,11 +476,36 @@
         filter: drop-shadow(0 0 8px var(--accent-glow));
     }
     
-    .hover-effect { 
-        cursor: pointer; 
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    
+.hover-effect { 
+    cursor: pointer !important; 
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.hover-effect:not(.datetime-container *):hover { 
+    opacity: 0.85 !important; 
+    transform: scale(1.08) !important;
+}
+    /* FIX: Prevent datetime pill from having hover effect */
+.datetime-container,
+.datetime-container * {
+    transition: none !important;
+}
+
+.datetime-container:hover,
+.datetime-container:hover * {
+    opacity: 1 !important;
+    transform: none !important;
+}
+
+/* ONLY icons get hover effect */
+.fa-solid:not(.datetime-container *) {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.fa-solid:not(.datetime-container *):hover {
+    opacity: 0.85 !important;
+    transform: scale(1.08) !important;
+}
     .hover-effect:hover { 
         opacity: 0.85; 
         transform: scale(1.08);
@@ -666,33 +729,41 @@
             </div>
         </div>
 
-        <div id="top-bar-wrapper" class="fixed top-0 left-0 right-0 p-4 flex justify-center space-x-4 z-10 opacity-0 transition-opacity duration-500">
-            <div class="top-bar-pill frosted-glass" title="vøid.2.0 Menu">
-                <span class="font-semibold text-lg tracking-wider">vøid.2.0</span>
-            </div>
-            <div id="desktop-proxy-form-container">
-                <form id="proxy-form" class="top-bar-pill frosted-glass w-64 p-0">
-                    <div class="flex items-center w-full h-full px-5">
-                        <i class="fas fa-search text-gray-400 mr-2"></i>
-                        <input type="text" id="proxy-address" placeholder="Search or type a URL" class="bg-transparent placeholder-gray-400 focus:outline-none w-full h-full text-sm" />
-                    </div>
-                    <input id="proxy-search-engine" value="https://www.duckduckgo.com/search?q=%s" type="hidden"/>
-                </form>
-            </div>
-            <div class="top-bar-pill frosted-glass space-x-4 text-sm">
-                <i class="fa-solid fa-bell hover-effect" title="Notifications"></i>
-                <i class="fa-solid fa-volume-high hover-effect" title="Volume"></i>
-            </div>
-    <div class="top-bar-pill frosted-glass space-x-2 text-xs" title="Battery">
-     <i class="fa-solid fa-battery-three-quarters" id="battery-icon"></i>
-        <span id="battery-percent">Loading...</span>
-    </div>
-            </div>
-            <div class="top-bar-pill frosted-glass space-x-2 text-xs font-mono" title="Current Time">
-                <span id="current-time"></span>
-                <span id="current-date" class="hidden md:inline"></span>
-            </div>
+<div id="top-bar-wrapper" class="fixed top-0 left-0 right-0 p-4 flex items-center justify-center space-x-4 z-10 opacity-0 transition-opacity duration-500">
+    <!-- LEFT GROUP -->
+    <div class="flex items-center space-x-4">
+        <div class="top-bar-pill frosted-glass" title="vøid.2.0 Menu">
+            <span class="font-semibold text-lg tracking-wider">vøid.2.0</span>
         </div>
+        <div id="desktop-proxy-form-container">
+            <form id="proxy-form" class="top-bar-pill frosted-glass w-64 p-0">
+                <div class="flex items-center w-full h-full px-5">
+                    <i class="fas fa-search text-gray-400 mr-2"></i>
+                    <input type="text" id="proxy-address" placeholder="Search or type a URL" class="bg-transparent placeholder-gray-400 focus:outline-none w-full h-full text-sm" />
+                </div>
+                <input id="proxy-search-engine" value="https://www.duckduckgo.com/search?q=%s" type="hidden"/>
+            </form>
+        </div>
+    </div>
+
+    <!-- CENTERED DATETIME PILL - NO HOVER -->
+    <div class="datetime-container top-bar-pill frosted-glass space-x-2 text-xs font-mono" title="Current Time">
+        <span id="current-time"></span>
+        <span id="current-date" class="hidden md:inline">•</span>
+    </div>
+
+    <!-- RIGHT GROUP -->
+    <div class="flex items-center space-x-4">
+        <div class="top-bar-pill frosted-glass space-x-4 text-sm">
+            <i class="fa-solid fa-bell hover-effect" title="Notifications"></i>
+            <i class="fa-solid fa-volume-high hover-effect" title="Volume"></i>
+        </div>
+        <div class="top-bar-pill frosted-glass space-x-2 text-xs" title="Battery">
+            <i class="fa-solid fa-battery-three-quarters" id="battery-icon"></i>
+            <span id="battery-percent">Loading...</span>
+        </div>
+    </div>
+</div>
         
         <main class="flex flex-col items-center justify-center w-full h-full min-h-screen">
         </main>
@@ -714,43 +785,74 @@
         const windowContainer = document.getElementById('window-container');
         let currentZIndex = 100;
         const openHyprWindows = [];
+// FIXED: Window Position Storage - Now properly centers new windows
+function saveWindowPosition(element, appId) {
+    const rect = element.getBoundingClientRect();
+    const state = {
+        appId: appId,
+        width: Math.max(300, rect.width),  // Enforce minimum size
+        height: Math.max(200, rect.height),
+        left: Math.max(20, rect.left),     // Enforce minimum bounds
+        top: Math.max(60, rect.top)        // Account for top bar
+    };
+    localStorage.setItem(`window-${appId}`, JSON.stringify(state));
+}
 
-        // FIXED: Window Position Storage - Now properly centers new windows
-        function saveWindowPosition(element, appId) {
-            const rect = element.getBoundingClientRect();
-            const state = {
-                appId: appId,
-                width: rect.width,
-                height: rect.height,
-                left: rect.left,
-                top: rect.top
-            };
-            localStorage.setItem(`window-${appId}`, JSON.stringify(state));
-        }
-
-        // FIXED: Load Window Position - Always returns PROPERLY CENTERED defaults
-        function loadWindowPosition(appId) {
-            const saved = localStorage.getItem(`window-${appId}`);
-            if (saved) {
-                const state = JSON.parse(saved);
-                // Validate saved position - if it's off-screen, reset to center
-                if (state.left < -100 || state.top < -100 || 
-                    state.left > window.innerWidth || state.top > window.innerHeight) {
-                    return getDefaultCenteredPosition(600, 400);
-                }
-                return state;
-            } else {
+// FIXED: Load Window Position - ALWAYS returns PROPERLY CENTERED defaults
+function loadWindowPosition(appId) {
+    const saved = localStorage.getItem(`window-${appId}`);
+    if (saved) {
+        try {
+            const state = JSON.parse(saved);
+            // STRICT VALIDATION: Reset if ANY value is invalid
+            const screenW = window.innerWidth;
+            const screenH = window.innerHeight;
+            
+            // Check if position is completely off-screen or invalid
+            if (state.left < -50 || state.top < -50 || 
+                state.left > screenW || state.top > screenH ||
+                state.width < 200 || state.height < 150 ||
+                isNaN(state.left) || isNaN(state.top) ||
+                isNaN(state.width) || isNaN(state.height)) {
+                console.log(`Invalid saved position for ${appId}, resetting to center`);
                 return getDefaultCenteredPosition(600, 400);
             }
+            
+            // Check if window would be partially off-screen
+            const rightEdge = state.left + state.width;
+            const bottomEdge = state.top + state.height;
+            if (rightEdge > screenW + 50 || bottomEdge > screenH + 50) {
+                console.log(`Saved position for ${appId} off-screen, resetting to center`);
+                return getDefaultCenteredPosition(600, 400);
+            }
+            
+            return {
+                width: Math.max(300, Math.min(state.width, screenW * 0.9)),
+                height: Math.max(200, Math.min(state.height, screenH * 0.9)),
+                left: Math.max(20, Math.min(state.left, screenW - 320)),
+                top: Math.max(60, Math.min(state.top, screenH - 220))
+            };
+        } catch (e) {
+            console.log(`Corrupted saved position for ${appId}, resetting to center`);
+            return getDefaultCenteredPosition(600, 400);
         }
+    }
+    return getDefaultCenteredPosition(600, 400);
+}
 
-        // NEW: Helper function for PERFECT centering
-        function getDefaultCenteredPosition(width, height) {
-            const left = Math.max(20, (window.innerWidth - width) / 2);
-            const top = Math.max(60, (window.innerHeight - height) / 2); // 60px for top bar
-            return { width, height, left, top };
-        }
-
+// IMPROVED: Helper function for PERFECT centering
+function getDefaultCenteredPosition(width, height) {
+    const screenW = window.innerWidth;
+    const screenH = window.innerHeight;
+    const left = Math.max(20, Math.floor((screenW - width) / 2));
+    const top = Math.max(60, Math.floor((screenH - height) / 2)); // 60px for top bar
+    return { 
+        width: Math.min(width, screenW * 0.9),
+        height: Math.min(height, screenH * 0.9),
+        left, 
+        top 
+    };
+}
         const appConfig = {
             'browser': { name: 'Terminal', src: 'jor1k/demos/main.html', type: 'iframe' },
             'games': { name: 'Games Center', src: 'games.html', type: 'iframe' },
@@ -768,19 +870,26 @@
         let initPromise = null;
 
         // --- UI Initialization and Updates ---
-        function updateTime() {
-            const now = new Date();
-            const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }).replace(' ', '');
-            const dateString = now.toLocaleDateString('en-US', { month: 'short', day: '2-digit' }).replace(/,/, '');
-            
-            const timeElement = document.getElementById('current-time');
-            const dateElement = document.getElementById('current-date');
-            if (timeElement) timeElement.textContent = timeString;
-            if (dateElement) dateElement.textContent = dateString;
+function updateTime() {
+    const now = new Date();
+    const timeString = now.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        hour12: true 
+    }).replace(' ', '');
+    const dateString = now.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric' 
+    }).replace(/,/, '');
+    
+    const timeElement = document.getElementById('current-time');
+    const dateElement = document.getElementById('current-date');
+    if (timeElement) timeElement.textContent = timeString;
+    if (dateElement) dateElement.textContent = dateString;
 
-            const hyprTimeElement = document.getElementById('hypr-time');
-            if (hyprTimeElement) hyprTimeElement.textContent = `${dateString} | ${timeString}`;
-        }
+    const hyprTimeElement = document.getElementById('hypr-time');
+    if (hyprTimeElement) hyprTimeElement.textContent = `${dateString} | ${timeString}`;
+}
 
         function setAppRunningStatus(appId, isRunning) {
             const dotElement = document.getElementById(`dot-${appId}`);
@@ -1613,13 +1722,30 @@
             }
         }
 
-        window.onload = () => {
-            updateTime();
-            setInterval(updateTime, 1000);
-            loadUserSettings();
-            setupProxy();
-            animateEntry();
-        };
+window.onload = () => {
+    // 🔧 RESET ALL CORRUPTED POSITIONS ON LOAD
+    Object.keys(appConfig).forEach(appId => {
+        const saved = localStorage.getItem(`window-${appId}`);
+        if (saved) {
+            try {
+                const state = JSON.parse(saved);
+                if (state.left < 0 || state.top < 0 || 
+                    state.left > window.innerWidth || state.top > window.innerHeight) {
+                    localStorage.removeItem(`window-${appId}`);
+                    console.log(`🧹 Cleared invalid position for ${appId}`);
+                }
+            } catch (e) {
+                localStorage.removeItem(`window-${appId}`);
+            }
+        }
+    });
+    
+    updateTime();
+    setInterval(updateTime, 1000);
+    loadUserSettings();
+    setupProxy();
+    animateEntry();
+};
     </script>
 <script>
 // Real battery - works with YOUR exact styling!
