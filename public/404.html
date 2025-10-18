@@ -1,31 +1,193 @@
-<!doctype html>
-<html>
-	<head>
-		<meta charset="utf-8" />
-		<meta
-			name="viewport"
-			content="width=device-width, initial-scale=1.0, shrink-to-fit=no"
-		/>
-		<title>Scramjet | Error</title>
-		<base href="/" />
-		<link rel="shortcut icon" content="favicon.ico" />
-		<link rel="stylesheet" href="index.css" />
-	</head>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - vøid.2.0 Desktop</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --bg-color: #0a0a0f;
+            --text-color: #ffffff;
+            --frosted-bg: rgba(20, 20, 30, 0.35);
+            --frosted-border: rgba(255, 255, 255, 0.08);
+            --text-muted: #9ca3af;
+            --accent-color: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.4);
+            --shadow-xl: 0 12px 60px rgba(0, 0, 0, 0.45);
+        }
 
-	<body>
-		<div class="logo-wrapper left-margin">
-			<h1>Scramjet | Error</h1>
-		</div>
-		<div class="desc left-margin">
-			<p>The server could not route your request.</p>
-		</div>
-		<footer>
-			<a
-				title="License information"
-				href="credits.html"
-				>Credits</a
-			>
-			<span>Scramjet &copy; MW 2025</span>
-		</footer>
-	</body>
+        body {
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        #wallpaper-bg {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            background-image: url('Wallpapers/2.png');
+            background-size: cover;
+            background-position: center;
+        }
+
+        .error-container {
+            text-align: center;
+            padding: 40px 32px;
+            background: var(--frosted-bg);
+            border: 1px solid var(--frosted-border);
+            border-radius: 24px;
+            backdrop-filter: blur(40px) saturate(180%);
+            box-shadow: var(--shadow-xl), 0 0 0 1px rgba(255, 255, 255, 0.03);
+            animation: float 4s ease-in-out infinite;
+            max-width: 420px;
+            width: 90%;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            33% { transform: translateY(-6px) rotate(0.5deg); }
+            66% { transform: translateY(-3px) rotate(-0.5deg); }
+        }
+
+        .error-icon {
+            font-size: 72px;
+            color: var(--accent-color);
+            filter: drop-shadow(0 0 24px var(--accent-glow));
+            margin-bottom: 16px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.05); }
+        }
+
+        .error-code {
+            font-size: 64px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-color), #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 0 0 8px 0;
+            letter-spacing: -0.02em;
+        }
+
+        .error-message {
+            font-size: 18px;
+            color: var(--text-muted);
+            margin: 0 0 4px 0;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+        }
+
+        .error-subtext {
+            font-size: 14px;
+            color: var(--text-muted);
+            opacity: 0.8;
+            margin: 0 0 32px 0;
+            font-weight: 400;
+        }
+
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .action-btn {
+            padding: 14px 24px;
+            border: 1px solid var(--frosted-border);
+            background: var(--frosted-bg);
+            color: var(--text-color);
+            border-radius: 12px;
+            font-weight: 500;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(20px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .action-btn:hover {
+            background: rgba(99, 102, 241, 0.15);
+            border-color: var(--accent-color);
+            box-shadow: 0 0 20px var(--accent-glow);
+            transform: translateY(-2px);
+        }
+
+        @media (min-width: 480px) {
+            .action-buttons {
+                flex-direction: row;
+            }
+            
+            .action-btn {
+                flex: 1;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .error-container {
+                padding: 32px 24px;
+                margin: 20px;
+            }
+            
+            .error-icon {
+                font-size: 56px;
+            }
+            
+            .error-code {
+                font-size: 48px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="wallpaper-bg"></div>
+    
+    <div class="error-container">
+        <div class="error-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        
+        <h1 class="error-code">404</h1>
+        <p class="error-message">PAGE NOT FOUND</p>
+        <p class="error-subtext">The requested resource does not exist in the void.</p>
+    </div>
+
+    <script>
+        function openTerminal() {
+            const url = prompt('Enter URL or search term:');
+            if (url) {
+                window.location.href = `/browser.html?q=${encodeURIComponent(url)}`;
+            }
+        }
+
+        // Smooth entry animation
+        window.addEventListener('load', () => {
+            const container = document.querySelector('.error-container');
+            container.style.opacity = '0';
+            container.style.transform = 'scale(0.95) translateY(20px)';
+            setTimeout(() => {
+                container.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+                container.style.opacity = '1';
+                container.style.transform = 'scale(1) translateY(0)';
+            }, 100);
+        });
+    </script>
+</body>
 </html>

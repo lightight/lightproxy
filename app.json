@@ -1,7 +1,6 @@
 {
-	"name": "Scramjet Demo",
-	"description": "Scramjet Demo App",
-	"repository": "https://github.com/.../Scramjet-Demo",
-	"logo": "https://raw.githubusercontent.com/MercuryWorkshop/scramjet/main/assets/scramjet.png",
-	"keywords": ["scramjet"]
+	"name": "Void2",
+	"description": "void2frfr",
+	"logo": "",
+	"keywords": ["void"]
 }

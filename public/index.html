@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>vøid.2.0 Desktop</title>
+    <title>vøid.2.0</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- Assuming these external scripts are available in the runtime environment -->
@@ -687,6 +687,66 @@
         margin: 0 !important;
         padding: inherit !important;
     }
+
+    /* Notification Center Styles */
+    #notification-center {
+        position: absolute;
+        top: 60px;
+        right: 20px;
+        width: 300px;
+        max-height: 400px;
+        background: var(--app-window-bg);
+        border: 1px solid var(--frosted-border);
+        border-radius: 12px;
+        box-shadow: var(--shadow-xl);
+        overflow-y: auto;
+        display: none;
+        z-index: 9999;
+        padding: 1rem;
+    }
+
+    #notification-center h3 {
+        font-size: 1rem;
+        margin-bottom: 1rem;
+        color: var(--text-color);
+    }
+
+    .notification-item {
+        background: rgba(255, 255, 255, 0.05);
+        padding: 0.75rem;
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .notification-item:last-child {
+        margin-bottom: 0;
+    }
+
+    /* Volume Control Styles */
+    #volume-control {
+        position: absolute;
+        top: 60px;
+        right: 100px; /* Adjust based on position */
+        width: 200px;
+        background: var(--app-window-bg);
+        border: 1px solid var(--frosted-border);
+        border-radius: 12px;
+        box-shadow: var(--shadow-xl);
+        display: none;
+        z-index: 9999;
+        padding: 1rem;
+    }
+
+    #volume-control h3 {
+        font-size: 1rem;
+        margin-bottom: 1rem;
+        color: var(--text-color);
+    }
+
+    #volume-slider {
+        width: 100%;
+    }
 </style>
 </head>
 <body class="layout-desktop">
@@ -755,8 +815,8 @@
     <!-- RIGHT GROUP -->
     <div class="flex items-center space-x-4">
         <div class="top-bar-pill frosted-glass space-x-4 text-sm">
-            <i class="fa-solid fa-bell hover-effect" title="Notifications"></i>
-            <i class="fa-solid fa-volume-high hover-effect" title="Volume"></i>
+            <i id="notification-icon" class="fa-solid fa-bell hover-effect" title="Notifications"></i>
+            <i id="volume-icon" class="fa-solid fa-volume-high hover-effect" title="Volume"></i>
         </div>
         <div class="top-bar-pill frosted-glass space-x-2 text-xs" title="Battery">
             <i class="fa-solid fa-battery-three-quarters" id="battery-icon"></i>
@@ -779,6 +839,23 @@
     </div>
 
     <div id="window-container"></div>
+
+    <!-- Notification Center Panel -->
+    <div id="notification-center" class="frosted-glass">
+        <h3>Notifications</h3>
+        <div id="notifications-list">
+            <!-- Notifications will be added here dynamically -->
+            <div class="notification-item">Welcome to vøid.2.0!</div>
+            <div class="notification-item">System update available.</div>
+        </div>
+    </div>
+
+    <!-- Volume Control Panel -->
+    <div id="volume-control" class="frosted-glass">
+        <h3>Volume</h3>
+        <input type="range" id="volume-slider" min="0" max="100" value="50" />
+        <p>Current Volume: <span id="volume-value">50%</span></p>
+    </div>
 
     <script>
         // --- State and DOM Elements ---
@@ -1406,7 +1483,7 @@ function updateTime() {
                 }
 
                 if (window.indexedDB) {
-                    const dbsToDelete = ['scramjet_vfs', 'epoxy_state'];
+                    const dbsToDelete = ['scramjet_vfs', 'epoxy_state', '$scramjet'];
                     if (window.indexedDB.databases) {
                         const allDbs = await window.indexedDB.databases();
                         allDbs.forEach(db => {
@@ -1425,6 +1502,10 @@ function updateTime() {
                     })));
                     console.log('IndexedDB databases cleared.');
                 }
+
+                // Clear application data
+                localStorage.clear();
+                sessionStorage.clear();
 
             } catch (err) {
                 console.error('Error during repair attempt:', err);
@@ -1722,6 +1803,29 @@ function updateTime() {
             }
         }
 
+// Function to add a new notification
+function addNotification(message) {
+    const list = document.getElementById('notifications-list');
+    const item = document.createElement('div');
+    item.classList.add('notification-item');
+    item.textContent = message;
+    list.appendChild(item);
+}
+
+// Toggle panel visibility
+function togglePanel(panelId) {
+    const panel = document.getElementById(panelId);
+    if (panel.style.display === 'block') {
+        panel.style.display = 'none';
+    } else {
+        // Close other panels if open
+        document.querySelectorAll('#notification-center, #volume-control').forEach(p => {
+            if (p.id !== panelId) p.style.display = 'none';
+        });
+        panel.style.display = 'block';
+    }
+}
+
 window.onload = () => {
     // 🔧 RESET ALL CORRUPTED POSITIONS ON LOAD
     Object.keys(appConfig).forEach(appId => {
@@ -1745,6 +1849,31 @@ window.onload = () => {
     loadUserSettings();
     setupProxy();
     animateEntry();
+
+    // Setup Notification Center
+    const notificationIcon = document.getElementById('notification-icon');
+    notificationIcon.addEventListener('click', () => togglePanel('notification-center'));
+
+    // Setup Volume Control
+    const volumeIcon = document.getElementById('volume-icon');
+    volumeIcon.addEventListener('click', () => togglePanel('volume-control'));
+
+    const volumeSlider = document.getElementById('volume-slider');
+    const volumeValue = document.getElementById('volume-value');
+    volumeSlider.addEventListener('input', () => {
+        volumeValue.textContent = `${volumeSlider.value}%`;
+        // Here you can add logic to set system volume if using Web Audio API
+    });
+
+    // Close panels when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('#notification-icon') && !e.target.closest('#notification-center')) {
+            document.getElementById('notification-center').style.display = 'none';
+        }
+        if (!e.target.closest('#volume-icon') && !e.target.closest('#volume-control')) {
+            document.getElementById('volume-control').style.display = 'none';
+        }
+    });
 };
     </script>
 <script>
