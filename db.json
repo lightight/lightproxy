@@ -1,0 +1,33 @@
+{
+  "users": {
+    "63ca6b1b-ed23-47d7-aa82-f7fdf2849e42": {
+      "email": "bholt2213@gmail.com",
+      "password": "A22m152004",
+      "friends": [],
+      "createdAt": "2025-10-27T06:20:19.463Z"
+    },
+    "149c68b5-6045-4d3c-bc42-fa00cf1755f9": {
+      "email": "bholt2213@gmail.com",
+      "password": "A22m152004",
+      "friends": [
+        "5eb8d7e5-7238-43a6-8d54-062cd70dc51e"
+      ],
+      "createdAt": "2025-10-27T06:20:24.047Z"
+    },
+    "a7d9286b-69a6-450c-9a9d-9623a54fd45b": {
+      "email": "spambreather@gmail.com",
+      "password": "A22m152004",
+      "friends": [],
+      "createdAt": "2025-10-27T06:20:43.084Z"
+    },
+    "5eb8d7e5-7238-43a6-8d54-062cd70dc51e": {
+      "email": "spambreather@gmail.com",
+      "password": "A22m152004",
+      "friends": [
+        "149c68b5-6045-4d3c-bc42-fa00cf1755f9"
+      ],
+      "createdAt": "2025-10-27T06:20:51.246Z"
+    }
+  },
+  "chats": {}
+}
