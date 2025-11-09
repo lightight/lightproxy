@@ -5,16 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>vøid.2.0</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Assuming these external scripts are available in the runtime environment -->
+  
+    <script src="/profiles/socket.io/socket.io.js"></script>
+  
     <script src="/scram/scramjet.all.js"></script>
     <script src="/baremux/index.js" defer></script>
-    <script src="/epoxy/index.js" defer></script>
+    <script src="search.js"></script>
     <script src="/register-sw.js" defer></script>
-
 <style>
+    /* --- Base Styles --- */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-    
+  
     :root {
         --bg-color: #0a0a0f;
         --text-color: #ffffff;
@@ -26,16 +27,18 @@
         --text-muted: #9ca3af;
         --accent-color: #6366f1;
         --accent-glow: rgba(99, 102, 241, 0.4);
-        --wallpaper: url('Wallpapers/2.png');
+        --wallpaper: url('Wallpapers/5.png');
         --hypr-bar-bg: rgba(10, 10, 15, 0.85);
         --hypr-bar-text: var(--accent-color);
         --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.15);
         --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.25);
         --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.35);
         --shadow-xl: 0 12px 60px rgba(0, 0, 0, 0.45);
+        --top-bar-bg: rgba(10, 10, 15, 0.95);
+        --tab-bar-bg: rgba(0, 0, 0, 0.3);
     }
-
-    .theme-starlight {
+    /* --- Other theme styles... --- */
+     .theme-starlight {
         --bg-color: #f5f7fa;
         --text-color: #1a1a2e;
         --frosted-bg: rgba(255, 255, 255, 0.45);
@@ -48,8 +51,9 @@
         --accent-glow: rgba(99, 102, 241, 0.3);
         --hypr-bar-bg: rgba(255, 255, 255, 0.9);
         --hypr-bar-text: #1a1a2e;
+        --top-bar-bg: rgba(255, 255, 255, 0.9);
+        --tab-bar-bg: #ffffff;
     }
-
     .theme-cyberpunk {
         --bg-color: #0d0221;
         --text-color: #f0f0f0;
@@ -63,8 +67,10 @@
         --accent-glow: rgba(240, 50, 235, 0.5);
         --hypr-bar-bg: rgba(20, 0, 40, 0.85);
         --hypr-bar-text: var(--accent-color);
+        --top-bar-bg: rgba(20, 0, 40, 0.85);
+        --tab-bar-bg: rgba(0, 0, 0, 0.3);
     }
-    
+  
     .theme-matrix {
         --bg-color: #000000;
         --text-color: #00ff00;
@@ -78,194 +84,15 @@
         --accent-glow: rgba(0, 255, 0, 0.4);
         --hypr-bar-bg: rgba(0, 10, 0, 0.9);
         --hypr-bar-text: var(--accent-color);
+        --top-bar-bg: rgba(0, 10, 0, 0.9);
+        --tab-bar-bg: rgba(0, 0, 0, 0.3);
     }
-    
+    /* --- Utility Classes (truncated) --- */
     *, ::before, ::after { box-sizing: border-box; border-width: 0; border-style: solid; border-color: #e5e7eb; }
     html { line-height: 1.5; -webkit-text-size-adjust: 100%; -moz-tab-size: 4; tab-size: 4; font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { margin: 0; line-height: inherit; }
-
-    body {
-        background-color: var(--bg-color);
-        min-height: 100vh;
-        overflow: hidden;
-        font-family: 'Inter', sans-serif;
-        cursor: default;
-        color: var(--text-color);
-        transition: background-color 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    #wallpaper-bg {
-        position: fixed;
-        inset: 0;
-        z-index: -1;
-        background-image: var(--wallpaper);
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-        transition: background-image 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    /* ============================================
-       iOS 26 HOME SCREEN FIXES - INTEGRATED
-       Apps ALWAYS CENTERED + Compact Date/Time Pill
-       ============================================ */
-
-    /* TOP ROW - FULL CENTERING */
-    .top-row {
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        justify-content: center !important;
-        width: 100% !important;
-        padding: 12px 20px !important;
-        box-sizing: border-box !important;
-        margin: 0 !important;
-    }
-
-#top-bar-wrapper {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    padding: 12px 20px !important;
-    gap: 1rem !important; /* 16px - matches space-x-4 */
-    width: 100% !important;
-    box-sizing: border-box !important;
-}
-
-/* LEFT GROUP */
-#top-bar-wrapper > .flex:first-child {
-    display: flex !important;
-    gap: 1rem !important; /* 16px */
-    flex-shrink: 0 !important;
-}
-
-/* CENTERED DATETIME - NOW PERFECTLY ALIGNED */
-#top-bar-wrapper .datetime-container {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 0.5rem !important; /* 8px between time/date */
-    background: var(--frosted-bg) !important;
-    backdrop-filter: blur(20px) !important;
-    border-radius: 9999px !important;
-    border: 1px solid var(--frosted-border) !important;
-    padding: 6px 16px !important;
-    min-width: auto !important;
-    width: fit-content !important;
-    flex-shrink: 0 !important; /* CRITICAL: Prevents shrinking */
-    margin: 0 !important; /* CRITICAL: No margins */
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
-
-/* RIGHT GROUP */
-#top-bar-wrapper > .flex:last-child {
-    display: flex !important;
-    gap: 1rem !important; /* 16px */
-    flex-shrink: 0 !important;
-}
-
-/* SUBTLE HOVER - datetime only */
-#top-bar-wrapper .datetime-container:hover {
-    background: rgba(255, 255, 255, 0.12) !important;
-    border-color: rgba(255, 255, 255, 0.25) !important;
-}
-/* TRADITIONAL LAYOUT DATETIME (unchanged) */
-#stars-layout .datetime-container {
-    padding: 8px 20px !important;
-    max-width: 280px !important;
-}
-
-    /* OVERRIDE ANY FULL-WIDTH FORCING */
-    .datetime-container[style*="width: 100%"],
-    div[style*="width: 100%"] > .datetime-container,
-    * [style*="width: 100%"] .datetime-container {
-        width: fit-content !important;
-        max-width: 280px !important;
-        margin: 0 auto !important;
-        padding: 8px 20px !important;
-    }
-
-    /* TIME TEXT */
-    .time-text {
-        font-size: 18px !important;
-        font-weight: 600 !important;
-        color: white !important;
-        margin-right: 12px !important;
-        margin: 0 !important;
-    }
-
-    /* DATE TEXT */
-    .date-text {
-        font-size: 14px !important;
-        color: rgba(255, 255, 255, 0.8) !important;
-        font-weight: 500 !important;
-        margin: 0 !important;
-    }
-
-    /* APP GRID - ALWAYS CENTERED */
-    .app-grid {
-        display: flex !important;
-        justify-content: center !important;
-        align-items: center !important;
-        gap: 16px !important;
-        padding: 12px 0 !important;
-        width: 100% !important;
-        max-width: 300px !important;
-        margin: 0 auto !important;
-        flex-wrap: wrap !important;
-    }
-
-    /* OVERRIDE LEFT ALIGNMENT */
-    * [style*="left"] .app-grid,
-    * [style*="margin-left"] .app-grid,
-    .app-grid[style*="left"],
-    .app-grid[style*="margin-left"] {
-        justify-content: center !important;
-        margin-left: auto !important;
-        margin-right: auto !important;
-        margin: 0 auto !important;
-    }
-
-    /* APP ICONS */
-    .app-icon {
-        width: 48px !important;
-        height: 48px !important;
-        border-radius: 12px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        background: rgba(255, 255, 255, 0.1) !important;
-        backdrop-filter: blur(20px) !important;
-        border: 1px solid rgba(255, 255, 255, 0.2) !important;
-        transition: all 0.2s ease !important;
-        flex-shrink: 0 !important;
-        flex-grow: 0 !important;
-    }
-
-    /* HOVER EFFECTS */
-    .app-icon:hover {
-        transform: scale(1.05) !important;
-        background: rgba(255, 255, 255, 0.2) !important;
-        border-color: rgba(255, 255, 255, 0.4) !important;
-    }
-
-    /* RESPONSIVE */
-    @media (max-width: 400px) {
-        .app-grid {
-            max-width: 250px !important;
-            gap: 12px !important;
-        }
-        .app-icon {
-            width: 44px !important;
-            height: 44px !important;
-        }
-        .datetime-container {
-            max-width: 240px !important;
-            padding: 6px 16px !important;
-        }
-    }
-
-    /* Utility Classes */
+    body { background-color: var(--bg-color); min-height: 100vh; overflow: hidden; font-family: 'Inter', sans-serif; cursor: default; color: var(--text-color); transition: background-color 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+    #wallpaper-bg { position: fixed; inset: 0; z-index: -1; background-image: var(--wallpaper); background-size: cover; background-position: center; background-repeat: no-repeat; transition: background-image 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
     .fixed { position: fixed; } .absolute { position: absolute; } .relative { position: relative; }
     .top-0 { top: 0; } .bottom-0 { bottom: 0; } .left-0 { left: 0; } .right-0 { right: 0; } .inset-0 { top: 0; right: 0; bottom: 0; left: 0;}
     .z-10 { z-index: 10; }
@@ -273,27 +100,27 @@
     .flex-col { flex-direction: column; }
     .items-center { align-items: center; } .justify-center { justify-content: center; } .justify-between { justify-content: space-between; }
     .space-x-2 > :not([hidden]) ~ :not([hidden]) { margin-left: 0.5rem; } .space-x-4 > :not([hidden]) ~ :not([hidden]) { margin-left: 1rem; } .space-x-6 > :not([hidden]) ~ :not([hidden]) { margin-left: 1.5rem; }
-    .gap-3 { gap: 0.75rem; } .gap-4 { gap: 1rem; } .gap-6 { gap: 1.5rem; }
+    .gap-3 { gap: 0.75rem; } .gap-4 { gap: 1rem; } .gap-6 { gap: 1.5rem; } .gap-2 { gap: 0.5rem; } .gap-1 { gap: 0.25rem; } .gap-8 { gap: 2rem; }
     .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr));} .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr));}
     .md\:grid-cols-4 { @media (min-width: 768px) { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
     .md\:grid-cols-6 { @media (min-width: 768px) { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
-    .mr-2 { margin-right: 0.5rem; } .mb-3 { margin-bottom: 0.75rem; } .mb-4 { margin-bottom: 1rem; } .mb-6 { margin-bottom: 1.5rem; } .mb-8 { margin-bottom: 2rem; }
-    .p-0 { padding: 0; } .p-2 { padding: 0.5rem; } .p-3 { padding: 0.75rem; } .p-4 { padding: 1rem; } .p-6 { padding: 1.5rem; }
-    .px-4 { padding-left: 1rem; padding-right: 1rem; } .px-5 { padding-left: 1.25rem; padding-right: 1.25rem; }
-    .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; } .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+    .mr-1 { margin-right: 0.25rem; } .mr-2 { margin-right: 0.5rem; } .mb-1 { margin-bottom: 0.25rem; } .mb-2 { margin-bottom: 0.5rem; } .mb-3 { margin-bottom: 0.75rem; } .mb-4 { margin-bottom: 1rem; } .mb-6 { margin-bottom: 1.5rem; } .mb-8 { margin-bottom: 2rem; }
+    .p-0 { padding: 0; } .p-1 { padding: 0.25rem; } .p-2 { padding: 0.5rem; } .p-3 { padding: 0.75rem; } .p-4 { padding: 1rem; } .p-6 { padding: 1.5rem; }
+    .px-2 { padding-left: 0.5rem; padding-right: 0.5rem; } .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; } .px-4 { padding-left: 1rem; padding-right: 1rem; } .px-5 { padding-left: 1.25rem; padding-right: 1.25rem; }
+    .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; } .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; } .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
     .w-full { width: 100%; } .h-full { height: 100%; }
     .w-64 { width: 16rem; } .max-w-2xl { max-width: 42rem; }
     .w-2 { width: 0.5rem; } .h-2 { height: 0.5rem; } .w-3 { width: 0.75rem; } .h-3 { height: 0.75rem; }
     .w-11 { width: 2.75rem;} .h-6 { height: 1.5rem; }
     .min-h-screen { min-height: 100vh; }
-    .rounded-full { border-radius: 9999px; } .rounded-lg { border-radius: 0.5rem; } .rounded-xl { border-radius: 0.75rem; } .rounded-2xl { border-radius: 1rem; }
+    .rounded { border-radius: 0.25rem; } .rounded-md { border-radius: 0.375rem; } .rounded-lg { border-radius: 0.5rem; } .rounded-xl { border-radius: 0.75rem; } .rounded-2xl { border-radius: 1rem; } .rounded-full { border-radius: 9999px; }
     .rounded-t-lg { border-top-left-radius: 0.5rem; border-top-right-radius: 0.5rem; }
     .bg-transparent { background-color: transparent; }
     .bg-red-500 { background-color: rgb(239 68 68); } .hover\:bg-red-400:hover { background-color: rgb(248 113 113); }
     .bg-yellow-500 { background-color: rgb(234 179 8); } .hover\:bg-yellow-400:hover { background-color: rgb(250 204 21); }
     .bg-green-500 { background-color: rgb(34 197 94); } .hover\:bg-green-400:hover { background-color: rgb(74 222 128); }
     .bg-black\/30 { background-color: rgba(0,0,0,0.3); } .bg-gray-600 { background-color: #4b5563; }
-    .text-white { color: #fff; } .text-center { text-align: center; }
+    .text-white { color: #fff; } .text-center { text-align: center; } .text-right { text-align: right; }
     .text-sm { font-size: 0.875rem; line-height: 1.25rem; } .text-lg { font-size: 1.125rem; line-height: 1.75rem; } .text-xs { font-size: 0.75rem; line-height: 1rem; } .text-xl { font-size: 1.25rem; line-height: 1.75rem; } .text-2xl { font-size: 1.5rem; line-height: 2rem; } .text-5xl { font-size: 3rem; line-height: 1; }
     .font-light { font-weight: 300; } .font-medium { font-weight: 500; } .font-semibold { font-weight: 600; } .font-bold { font-weight: 700; }
     .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
@@ -307,852 +134,873 @@
     .hidden { display: none; } .md\:inline { display: inline; }
     .cursor-pointer { cursor: pointer; } .cursor-not-allowed { cursor: not-allowed; }
     .opacity-50 { opacity: 0.5; } .flex-grow { flex-grow: 1; }
-    .overflow-hidden { overflow: hidden; } .overflow-y-auto { overflow-y: auto; }
+    .overflow-hidden { overflow: hidden; } .overflow-y-auto { overflow-y: auto; } .overflow-auto { overflow: auto; } .overflow-x-auto { overflow-x: auto; }
     .pointer-events-none { pointer-events: none; }
     .transition-colors { transition-property: color, background-color, border-color, text-decoration-color, fill, stroke; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
     .transition-all { transition-property: all; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
     .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0; }
-    .battery { width: 200px; height: 80px; border: 3px solid #333; border-radius: 8px; position: relative; margin: 20px auto; background: white; }
-    .battery::after { content: ''; position: absolute; right: -8px; top: 30%; width: 8px; height: 40%; background: #333; border-radius: 0 2px 2px 0; }
-    .fill { height: 100%; border-radius: 5px; transition: width 0.3s; position: absolute; bottom: 0; left: 0; }
-    .percentage { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; font-size: 18px; }
-    .charging { animation: pulse 1s infinite; }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
-
-    /* App Window Positioning - FIXED */
-    .app-window {
-        min-width: 300px !important;
-        min-height: 200px !important;
-        width: 70%;
-        height: 65%;
-        background-color: var(--app-window-bg);
+    .flex-shrink-0 { flex-shrink: 0; }
+    .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* --- App Window --- */
+    .app-window { min-width: 300px !important; min-height: 200px !important; width: 70%; height: 65%; background-color: var(--app-window-bg); border: 1px solid var(--frosted-border); border-radius: 16px; box-shadow: var(--shadow-xl), 0 0 0 1px rgba(255, 255, 255, 0.03); position: absolute; resize: both !important; overflow: hidden; will-change: transform, width, height; transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); backdrop-filter: blur(40px) saturate(180%); -webkit-backdrop-filter: blur(40px) saturate(180%); }
+    .window-header { cursor: default; user-select: none; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+    .window-traditional-fullscreen { width: 100% !important; height: calc(100% - 4.5rem) !important; top: 4.5rem !important; left: 0 !important; border-radius: 0 !important; resize: none !important; max-width: none !important; max-height: none !important; border: none !important; box-shadow: none !important; }
+    .window-traditional-fullscreen .window-header { display: none; }
+    .frosted-glass { backdrop-filter: blur(32px) saturate(200%); -webkit-backdrop-filter: blur(32px) saturate(200%); background-color: var(--frosted-bg); border: 1px solid var(--frosted-border); box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255, 255, 255, 0.05); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+  
+    /* --- Settings & Layout Styles (truncated) --- */
+    .settings-section { margin-bottom: 2rem; padding: 1.5rem; background: rgba(255, 255, 255, 0.02); border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.05); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .settings-title { font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem; color: var(--text-color); letter-spacing: -0.025em; }
+    .theme-card { padding: 1rem; border-radius: 12px; border: 2px solid transparent; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); background: rgba(255, 255, 255, 0.02); }
+    .theme-card.selected { border-color: var(--accent-color); background: rgba(var(--accent-glow), 0.1); box-shadow: 0 0 20px var(--accent-glow); }
+    .wallpaper-thumb { width: 100%; height: 72px; object-fit: cover; border-radius: 10px; cursor: pointer; border: 2px solid transparent; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: var(--shadow-sm); }
+    .wallpaper-thumb.selected { border-color: var(--accent-color); box-shadow: 0 0 16px var(--accent-glow); }
+    .layout-button { padding: 0.75rem 1.5rem; font-size: 0.875rem; font-weight: 500; border-radius: 10px; border: 2px solid transparent; background: rgba(255, 255, 255, 0.03); color: var(--text-color); cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: var(--shadow-sm); }
+    .layout-button.selected { border-color: var(--accent-color); background: rgba(var(--accent-glow), 0.15); box-shadow: 0 0 20px var(--accent-glow); }
+    /* --- Notification & Volume Panel Styles --- */
+    #notification-center { position: absolute; top: 60px; right: 20px; width: 300px; max-height: 400px; background: var(--app-window-bg); border: 1px solid var(--frosted-border); border-radius: 12px; box-shadow: var(--shadow-xl); overflow-y: auto; display: none; z-index: 9999; padding: 1rem; }
+    #notification-center h3 { font-size: 1rem; margin-bottom: 1rem; color: var(--text-color); }
+    .notification-item { background: rgba(255, 255, 255, 0.05); padding: 0.75rem; border-radius: 8px; margin-bottom: 0.5rem; font-size: 0.875rem; }
+    .notification-item:last-child { margin-bottom: 0; }
+    #volume-control { position: absolute; top: 60px; right: 100px; width: 200px; background: var(--app-window-bg); border: 1px solid var(--frosted-border); border-radius: 12px; box-shadow: var(--shadow-xl); display: none; z-index: 9999; padding: 1rem; }
+    #volume-control h3 { font-size: 1rem; margin-bottom: 1rem; color: var(--text-color); }
+    #volume-slider { width: 100%; }
+    /* --- Profile App Window Styles --- */
+    .profile-window-content {
+        display: flex;
+        height: 100%; /* Ensure content fills the window */
+        gap: 16px; /* Match original gap */
+        padding: 1rem; /* Add some padding */
+        font-family: 'Inter', monospace; /* Match font */
+    }
+    .profile-sidebar {
+        width: 260px;
+        background: rgba(0,0,0,0.15); /* Slightly darker bg */
+        border-radius: 8px;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
         border: 1px solid var(--frosted-border);
-        border-radius: 16px;
-        box-shadow: var(--shadow-xl), 0 0 0 1px rgba(255, 255, 255, 0.03);
-        position: absolute;
-        resize: both !important;
-        overflow: hidden;
-        will-change: transform, width, height;
-        transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        backdrop-filter: blur(40px) saturate(180%);
-        -webkit-backdrop-filter: blur(40px) saturate(180%);
-        cursor: grab;
     }
-
-    .app-window:hover {
-        cursor: grab;
+    .profile-tabs {
+        display: flex;
+        margin-bottom: 8px; /* Add space below tabs */
     }
-    .app-window.snapped-left { border-left: 3px solid var(--accent-color); }
-    .app-window.snapped-right { border-right: 3px solid var(--accent-color); }
-    .app-window.snapped-top { border-top: 3px solid var(--accent-color); }
-    .app-window.snapped-bottom { border-bottom: 3px solid var(--accent-color); }
-    .window-maximized { 
-        width: 100% !important; 
-        height: calc(100% - 4rem) !important; 
-        top: 3.5rem !important; 
-        left: 0 !important; 
-        border-radius: 0 !important;
+    .profile-tab {
+        flex: 1;
+        text-align: center;
+        padding: 6px;
+        cursor: pointer;
+        background: rgba(255,255,255,0.05);
+        border-radius: 6px 6px 0 0;
+        font-size: 0.85rem;
     }
-    
-    .window-hidden { 
-        opacity: 0 !important; 
-        pointer-events: none;
-        transform: scale(0.95) !important;
-        transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    .profile-tab.active {
+        background: rgba(255,255,255,0.1);
+        font-weight: bold;
     }
-    
-    .window-header { 
-        cursor: grab; 
-        user-select: none;
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-    }
-    
-    .window-traditional-fullscreen {
-        width: 100% !important; 
-        height: 100% !important;
-        top: 0 !important; 
-        left: 0 !important; 
-        border-radius: 0 !important;
-        resize: none !important; 
-        max-width: none !important;
-        max-height: none !important;
-        border: none !important;
-        box-shadow: none !important;
-    }
-
-    .window-traditional-fullscreen .window-header {
-        display: none;
-    }
-
-    /* Enhanced Glassmorphism */
-    .frosted-glass {
-        backdrop-filter: blur(32px) saturate(200%);
-        -webkit-backdrop-filter: blur(32px) saturate(200%);
-        background-color: var(--frosted-bg);
+    .profile-list {
+        flex: 1;
+        overflow: auto;
+        background: rgba(0,0,0,0.1); /* Slightly darker list bg */
+        padding: 8px;
+        border-radius: 0 0 6px 6px;
         border: 1px solid var(--frosted-border);
-        box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        border-top: none;
     }
-    
-    .frosted-glass:hover {
-        background-color: rgba(var(--frosted-bg), 0.5);
-        border-color: rgba(255, 255, 255, 0.12);
-        box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    .profile-item {
+        padding: 8px;
+        border-radius: 6px;
+        cursor: pointer;
+        margin-bottom: 6px;
+        background: transparent;
+        font-size: 0.8rem;
     }
-    
-    /* Top Bar Enhancements */
-    .top-bar-pill { 
-        height: 2.75rem; 
-        padding: 0 1.25rem; 
-        border-radius: 9999px; 
-        display: flex; 
-        align-items: center; 
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
-        user-select: none !important;
+    .profile-item:hover, .profile-item.active {
+        background: rgba(255,255,255,0.1);
     }
-    
-    #top-bar-wrapper, #dock { opacity: 0; }
-    
-    /* Dock Enhancements */
-    .dock-container { 
-        position: fixed; 
-        bottom: 24px; 
-        left: 50%; 
-        transform: translateX(-50%); 
-        padding: 12px 20px; 
-        border-radius: 24px; 
-        box-shadow: var(--shadow-xl), 0 0 0 1px rgba(255, 255, 255, 0.05);
-        transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    .profile-group-tag { font-weight: 700; color: #9ad; } /* Match original color */
+    .profile-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        height: 100%; /* Ensure main area fills height */
     }
-    
-    .dock-icon-link { 
-        transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); 
-        cursor: pointer; 
+    .profile-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .profile-top h3 {
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+    #profile-chatBox {
+        background: rgba(0,0,0,0.2); /* Darker chat */
+        border: 1px solid var(--frosted-border);
+        flex: 1;
+        border-radius: 8px;
+        padding: 12px;
+        overflow: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    .profile-msg-line {
+        display: flex;
+        margin-bottom: 8px;
+    }
+    .profile-msg-line.me {
+        justify-content: flex-end;
+    }
+    .profile-bubble {
+        padding: 8px 10px;
+        border-radius: 12px;
+        max-width: 70%;
+        word-wrap: break-word;
+        line-height: 1.4;
+        font-size: 0.85rem;
+    }
+    .me .profile-bubble {
+        background: #162b3a; /* Match original color */
+        text-align: right;
+    }
+    .them .profile-bubble {
+        background: #222; /* Match original color */
+        text-align: left;
+    }
+    .profile-meta {
+        font-size: 10px;
+        opacity: 0.6;
+        margin-top: 2px;
+    }
+    /* Input/Button styles for profile window */
+    .profile-window-content input,
+    .profile-window-content button {
+        background: rgba(0,0,0,0.1);
+        color: var(--text-color);
+        border: 1px solid var(--frosted-border);
+        padding: 8px;
+        border-radius: 8px;
+        font-size: 0.8rem; /* Smaller font */
+    }
+    .profile-window-content button {
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    .profile-window-content button:hover {
+         background: rgba(255,255,255,0.1);
+    }
+    .profile-window-content button.small {
+        font-size: 12px;
+        padding: 6px;
+    }
+    #profile-controls {
+        display: flex;
+        gap: 8px;
+    }
+    #profile-createGroupArea {
+        margin-top: 10px;
+        border-top: 1px solid var(--frosted-border);
+        padding-top: 10px;
+        display: flex; /* Make create group inline */
+        gap: 8px;
+        align-items: center;
+    }
+    #profile-createGroupArea input {
+        flex: 1; /* Allow inputs to grow */
+    }
+  
+    /* --- Terminal Styles for fallback messages --- */
+    .terminal-message-body {
+        background-color: var(--bg-color);
+        color: #00FF00;
+        font-family: 'Fira Code', 'Courier New', monospace;
+        margin: 0;
+        padding: 1.5rem;
+        height: 100vh;
+        font-size: 0.9rem;
+        white-space: pre-wrap;
+        overflow-y: auto;
+    }
+    .terminal-message-body h2 { color: #6366f1; font-size: 1.1rem; margin-bottom: 0.75rem; font-weight: 600; }
+    .terminal-message-body p { margin: 0.3rem 0; line-height: 1.6; }
+    .terminal-message-body .prompt { color: #6366f1; margin-right: 8px; font-weight: 600; }
+    .terminal-message-body .error { color: #ef4444; font-weight: bold; }
+    .terminal-message-body button {
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        margin-top: 1rem;
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        transition: all 0.3s ease;
+    }
+     .terminal-message-body button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+    }
+    .terminal-message-body .input-line { display: flex; align-items: center; margin-top: 12px; }
+     .terminal-message-body .input-line input {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(99, 102, 241, 0.3);
+        border-radius: 6px;
+        color: #FFFFFF;
+        font-family: 'Fira Code', monospace;
+        flex-grow: 1;
+        padding: 8px 12px;
+        margin-left: 8px;
+        outline: none;
+        transition: all 0.3s ease;
+    }
+    .terminal-message-body .input-line input:focus {
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+    /* --- NEW: New Tab Page Styles --- */
+    .new-tab-body {
+        background-image: var(--wallpaper);
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        color: var(--text-color);
+        font-family: 'Inter', sans-serif;
+        margin: 0;
+        padding: 1.5rem;
+        height: 100vh;
+        font-size: 0.9rem;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+    }
+    .new-tab-body h1 {
+        font-size: 4rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        letter-spacing: -0.02em;
+        margin-bottom: 3rem;
+        filter: drop-shadow(0 0 20px rgba(99, 102, 241, 0.3));
+    }
+    .new-tab-body .new-tab-search-form {
+        width: 100%;
+        max-width: 600px;
         position: relative;
     }
-    
-    .dock-icon-link:hover { 
-        transform: translateY(-16px) scale(1.25);
+    .new-tab-body .new-tab-input {
+        background: rgba(255, 255, 255, 0.08) !important;
+        border: 1.5px solid rgba(255, 255, 255, 0.12) !important;
+        border-radius: 14px !important;
+        padding: 0 16px 0 52px !important; /* Make space for icon */
+        width: 100%;
+        height: 56px !important;
+        font-size: 15px !important;
+        font-weight: 500;
+        color: var(--text-color) !important;
+        font-family: 'Inter', sans-serif;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        transition: all 0.3s ease;
+        outline: none;
+        box-sizing: border-box;
     }
-    
-    .running-dot { 
-        position: absolute; 
-        bottom: -10px; 
-        left: 50%; 
-        transform: translateX(-50%); 
-        width: 5px; 
-        height: 5px; 
-        background-color: var(--accent-color); 
-        border-radius: 50%; 
-        opacity: 0; 
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 0 8px var(--accent-glow);
+    .new-tab-body .new-tab-input::placeholder {
+        color: var(--text-muted) !important;
+        opacity: 0.7;
+        font-weight: 400;
     }
-    
-    .running-dot.active { opacity: 1; }
-    
-    .dock-icon { 
-        width: 52px; 
-        height: 52px; 
-        display: flex; 
-        align-items: center; 
-        justify-content: center; 
-        border-radius: 16px; 
-        font-size: 24px; 
-        background-color: var(--dock-icon-bg); 
-        border: 1px solid var(--dock-icon-border); 
-        box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    .new-tab-body .new-tab-input:focus {
+        border-color: rgba(99, 102, 241, 0.5) !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3),
+                    0 0 0 2px rgba(99, 102, 241, 0.3),
+                    0 0 60px rgba(99, 102, 241, 0.25);
     }
-    
-    .dock-icon i { 
-        color: var(--text-muted); 
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    
-    .dock-icon-link:hover .dock-icon {
-        background-color: rgba(var(--dock-icon-bg), 0.8);
-        box-shadow: var(--shadow-lg), 0 0 20px var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    }
-    
-    .dock-icon-link:hover .dock-icon i { 
-        color: var(--accent-color);
-        filter: drop-shadow(0 0 8px var(--accent-glow));
-    }
-    
-.hover-effect { 
-    cursor: pointer !important; 
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
-
-.hover-effect:not(.datetime-container *):hover { 
-    opacity: 0.85 !important; 
-    transform: scale(1.08) !important;
-}
-    /* FIX: Prevent datetime pill from having hover effect */
-.datetime-container,
-.datetime-container * {
-    transition: none !important;
-}
-
-.datetime-container:hover,
-.datetime-container:hover * {
-    opacity: 1 !important;
-    transform: none !important;
-}
-
-/* ONLY icons get hover effect */
-.fa-solid:not(.datetime-container *) {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
-
-.fa-solid:not(.datetime-container *):hover {
-    opacity: 0.85 !important;
-    transform: scale(1.08) !important;
-}
-    .hover-effect:hover { 
-        opacity: 0.85; 
-        transform: scale(1.08);
-    }
-    
-    @keyframes pulse-dot { 
-        0%, 100% { transform: scale(1); opacity: 1; } 
-        50% { transform: scale(1.5); opacity: 0.7; } 
-    }
-    
-    .active-dot { animation: pulse-dot 2s infinite cubic-bezier(0.4, 0, 0.2, 1); }
-    
-    /* Hyprland Layout */
-    body.layout-hyprland #top-bar-wrapper,
-    body.layout-hyprland #dock {
-        opacity: 0 !important;
+    .new-tab-body .new-tab-search-icon {
+        position: absolute;
+        top: 50%;
+        left: 20px;
+        transform: translateY(-50%);
+        font-size: 18px;
+        color: var(--accent-color) !important;
+        transition: all 0.3s ease;
         pointer-events: none;
     }
-    
-    #hypr-status-bar {
+    .new-tab-body .new-tab-input:focus ~ .new-tab-search-icon {
+        transform: translateY(-50%) scale(1.1);
+        filter: drop-shadow(0 0 8px var(--accent-glow));
+    }
+    /* --- NEW: Main Top App Bar --- */
+    #app-bar {
         position: fixed;
         top: 0;
         left: 0;
         right: 0;
-        height: 2.25rem;
-        display: none;
+        height: 4.5rem;
+        background: var(--top-bar-bg) !important;
+        backdrop-filter: blur(24px) saturate(180%) !important;
+        -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+        border-bottom: 1px solid var(--frosted-border);
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        display: flex;
         align-items: center;
         justify-content: space-between;
-        background-color: var(--hypr-bar-bg);
-        color: var(--hypr-bar-text);
-        font-family: 'Fira Code', 'Inter', monospace;
-        font-size: 0.8rem;
-        padding: 0 1.25rem;
-        z-index: 10;
-        opacity: 0;
-        transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-        backdrop-filter: blur(24px);
-        -webkit-backdrop-filter: blur(24px);
-        box-shadow: var(--shadow-sm);
+        padding: 0 1.5rem;
+        z-index: 50;
+        gap: 1rem;
     }
-
-    body.layout-hyprland #hypr-status-bar {
+    /* App Bar App Icons */
+    #app-bar-apps {
         display: flex;
-        opacity: 1;
+        align-items: center;
+        gap: 0.75rem; /* Tighter spacing for app icons */
     }
-
-    .hypr-app-launcher {
-        font-weight: 500;
-        padding: 6px 12px;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    
-    .hypr-app-launcher:hover {
-        background-color: rgba(255, 255, 255, 0.08);
-        box-shadow: 0 0 12px var(--accent-glow);
-    }
-    
-    body.layout-hyprland .app-window {
-        border-radius: 0px !important; 
-        border: 2px solid var(--accent-color) !important; 
-        box-shadow: 0 0 20px var(--accent-glow) !important;
-        background-color: var(--app-window-bg); 
-        resize: none !important;
-        top: 0 !important;
-        left: 0 !important;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    
-    body.layout-hyprland .window-header {
-        cursor: default !important;
-        user-select: none !important;
-        border-top-left-radius: 0px !important;
-        border-top-right-radius: 0px !important;
-    }
-    
-    body.layout-hyprland .window-controls {
-        display: none !important;
-    }
-    
-    /* Settings Page Enhancements */
-    .settings-section {
-        margin-bottom: 2rem;
-        padding: 1.5rem;
-        background: rgba(255, 255, 255, 0.02);
-        border-radius: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    
-    .settings-section:hover {
-        background: rgba(255, 255, 255, 0.04);
-        border-color: rgba(255, 255, 255, 0.08);
-    }
-    
-    .settings-title {
-        font-size: 1.125rem;
-        font-weight: 600;
-        margin-bottom: 1rem;
-        color: var(--text-color);
-        letter-spacing: -0.025em;
-    }
-    
-    .theme-card {
-        padding: 1rem;
-        border-radius: 12px;
-        border: 2px solid transparent;
-        cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        background: rgba(255, 255, 255, 0.02);
-    }
-    
-    .theme-card:hover {
-        background: rgba(255, 255, 255, 0.05);
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-md);
-    }
-    
-    .theme-card.selected {
-        border-color: var(--accent-color);
-        background: rgba(var(--accent-glow), 0.1);
-        box-shadow: 0 0 20px var(--accent-glow);
-    }
-    
-    .wallpaper-thumb {
-        width: 100%;
-        height: 72px;
-        object-fit: cover;
-        border-radius: 10px;
-        cursor: pointer;
-        border: 2px solid transparent;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: var(--shadow-sm);
-    }
-    
-    .wallpaper-thumb:hover {
-        transform: scale(1.05);
-        box-shadow: var(--shadow-md);
-    }
-    
-    .wallpaper-thumb.selected {
-        border-color: var(--accent-color);
-        box-shadow: 0 0 16px var(--accent-glow);
-    }
-    
-    .layout-button {
-        padding: 0.75rem 1.5rem;
-        font-size: 0.875rem;
-        font-weight: 500;
-        border-radius: 10px;
-        border: 2px solid transparent;
-        background: rgba(255, 255, 255, 0.03);
-        color: var(--text-color);
-        cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: var(--shadow-sm);
-    }
-    
-    .layout-button:hover {
-        background: rgba(255, 255, 255, 0.06);
-        transform: translateY(-1px);
-        box-shadow: var(--shadow-md);
-    }
-    
-    .layout-button.selected {
-        border-color: var(--accent-color);
-        background: rgba(var(--accent-glow), 0.15);
-        box-shadow: 0 0 20px var(--accent-glow);
-    }
-
-    /* REMOVE UNWANTED MARGINS */
-    * {
-        box-sizing: border-box !important;
-    }
-
-    [style*="margin"] .app-grid,
-    [style*="padding"] .top-row {
-        margin: 0 !important;
-        padding: inherit !important;
-    }
-
-    /* Notification Center Styles */
-    #notification-center {
-        position: absolute;
-        top: 60px;
-        right: 20px;
-        width: 300px;
-        max-height: 400px;
-        background: var(--app-window-bg);
-        border: 1px solid var(--frosted-border);
-        border-radius: 12px;
-        box-shadow: var(--shadow-xl);
-        overflow-y: auto;
-        display: none;
-        z-index: 9999;
-        padding: 1rem;
-    }
-
-    #notification-center h3 {
-        font-size: 1rem;
-        margin-bottom: 1rem;
-        color: var(--text-color);
-    }
-
-    .notification-item {
-        background: rgba(255, 255, 255, 0.05);
-        padding: 0.75rem;
-        border-radius: 8px;
-        margin-bottom: 0.5rem;
-        font-size: 0.875rem;
-    }
-
-    .notification-item:last-child {
-        margin-bottom: 0;
-    }
-
-    /* Volume Control Styles */
-    #volume-control {
-        position: absolute;
-        top: 60px;
-        right: 100px; /* Adjust based on position */
-        width: 200px;
-        background: var(--app-window-bg);
-        border: 1px solid var(--frosted-border);
-        border-radius: 12px;
-        box-shadow: var(--shadow-xl);
-        display: none;
-        z-index: 9999;
-        padding: 1rem;
-    }
-
-    #volume-control h3 {
-        font-size: 1rem;
-        margin-bottom: 1rem;
-        color: var(--text-color);
-    }
-
-    #volume-slider {
-        width: 100%;
-    }
-
-    /* Onboarding Modal Styles */
-    #onboarding-modal {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.7);
+    #app-bar-apps .app-icon {
+        position: relative;
+        width: 44px;
+        height: 44px;
         display: flex;
         align-items: center;
         justify-content: center;
-        z-index: 99999;
-        opacity: 0;
-        transition: opacity 0.5s ease;
-        pointer-events: none;
-    }
-
-    #onboarding-modal.visible {
-        opacity: 1;
-        pointer-events: auto;
-    }
-
-    .onboarding-content {
-        background: var(--app-window-bg);
-        border-radius: 16px;
-        padding: 2rem;
-        width: 400px;
-        max-width: 90%;
-        box-shadow: var(--shadow-xl);
-        text-align: center;
-    }
-
-    .onboarding-content h2 {
-        font-size: 1.5rem;
-        margin-bottom: 1rem;
-    }
-
-    .onboarding-content p {
-        font-size: 1rem;
-        margin-bottom: 1.5rem;
-        color: var(--text-muted);
-    }
-
-    .onboarding-buttons {
-        display: flex;
-        justify-content: center;
-        gap: 1rem;
-    }
-
-    .onboarding-button {
-        padding: 0.75rem 1.5rem;
-        background: var(--accent-color);
-        color: white;
-        border-radius: 8px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--frosted-border);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        font-size: 18px;
         cursor: pointer;
+    }
+    #app-bar-apps .app-icon:hover {
+        background: rgba(99, 102, 241, 0.15);
+        border-color: rgba(99, 102, 241, 0.3);
+        transform: translateY(-2px) scale(1.05);
+        box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3),
+                    0 0 20px rgba(99, 102, 241, 0.2);
+    }
+    #app-bar-apps .app-icon i {
+        color: var(--text-muted);
         transition: all 0.3s ease;
     }
-
-    .onboarding-button:hover {
-        transform: scale(1.05);
-        box-shadow: 0 0 20px var(--accent-glow);
+    #app-bar-apps .app-icon:hover i {
+        color: var(--accent-color);
+        filter: drop-shadow(0 0 8px var(--accent-glow));
     }
-
-    .onboarding-skip {
-        margin-top: 1rem;
-        color: var(--text-muted);
-        cursor: pointer;
-        text-decoration: underline;
-    }
-
-    #stars-proxy-form-container {
+    /* App Bar System Icons (Right Side) */
+    #app-bar-system {
         display: flex;
-        justify-content: center;
+        align-items: center;
+        gap: 1rem;
+    }
+    #app-bar-system .system-pill {
+        height: 44px;
+        padding: 0 1.25rem;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--frosted-border);
+        font-size: 14px;
+        user-select: none;
+    }
+    #app-bar-system .system-pill .hover-effect {
+        cursor: pointer;
+        color: var(--text-muted);
+        transition: all 0.3s ease;
+    }
+    #app-bar-system .system-pill .hover-effect:hover {
+        color: var(--accent-color);
+        filter: drop-shadow(0 0 8px var(--accent-glow));
+        transform: scale(1.1);
+    }
+    #app-bar-system .datetime-container {
+        font-family: 'Inter', sans-serif;
+        font-size: 0.8rem;
+        font-weight: 500;
+        color: var(--text-muted);
+    }
+    #app-bar-system .battery-container {
+        font-size: 0.8rem;
+        font-weight: 500;
+        color: var(--text-muted);
+        gap: 0.5rem !important;
+    }
+    /* Modern Search Bar Design (for Top Bar) */
+    #proxy-form {
+        background: rgba(255, 255, 255, 0.08) !important;
+        backdrop-filter: blur(20px) saturate(180%) !important;
+        -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+        border: 1.5px solid var(--frosted-border) !important;
+        border-radius: 14px !important;
+        padding: 0 !important;
         width: 100%;
+        max-width: 500px;
+        height: 44px !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2),
+                    0 0 0 1px rgba(255, 255, 255, 0.05),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        display: flex;
+        align-items: center;
+    }
+    #proxy-form:hover {
+        border-color: rgba(99, 102, 241, 0.3) !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3),
+                    0 0 0 1px rgba(99, 102, 241, 0.2),
+                    0 0 40px rgba(99, 102, 241, 0.15),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+        transform: translateY(-1px);
+    }
+    #proxy-form:focus-within {
+        border-color: rgba(99, 102, 241, 0.5) !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3),
+                    0 0 0 2px rgba(99, 102, 241, 0.3),
+                    0 0 60px rgba(99, 102, 241, 0.25),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+        transform: translateY(-2px);
+    }
+    #proxy-form .flex {
+        padding: 0 16px !important;
+        height: 100%;
+        width: 100%;
+    }
+    #proxy-form i.fa-search {
+        font-size: 16px;
+        color: var(--accent-color) !important;
+        margin-right: 12px !important;
+        transition: all 0.3s ease;
+    }
+    #proxy-form:focus-within i.fa-search {
+        transform: scale(1.1);
+        filter: drop-shadow(0 0 8px var(--accent-glow));
+    }
+    #proxy-address {
+        font-size: 14px !important;
+        font-weight: 500;
+        letter-spacing: 0.01em;
+        color: var(--text-color) !important;
+    }
+    #proxy-address::placeholder {
+        color: var(--text-muted) !important;
+        opacity: 0.7;
+        font-weight: 400;
+    }
+    /* --- NEW: Tab System Styles --- */
+    #browser-tab-bar {
+        display: flex;
+        gap: 8px;
+        padding: 8px;
+        background: var(--tab-bar-bg);
+        border-bottom: 1px solid var(--frosted-border);
+        overflow-x: auto;
+        flex-shrink: 0;
+    }
+    #browser-tab-bar .tab-item {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        padding: 8px 12px 8px 16px; /* More padding for close button */
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        white-space: nowrap;
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: var(--text-muted);
+        border: 1px solid var(--frosted-border);
+        min-width: 120px;
+        max-width: 200px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+    }
+    #browser-tab-bar .tab-item:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(99, 102, 241, 0.2);
+        transform: translateY(-1px);
+        color: var(--text-color);
+    }
+    #browser-tab-bar .tab-item.active {
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(139, 92, 246, 0.15) 100%);
+        border-color: var(--accent-color);
+        color: white;
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2),
+                    0 0 16px rgba(99, 102, 241, 0.1);
+    }
+    #browser-tab-bar .tab-item .tab-close {
+        font-size: 12px;
+        padding: 4px;
+        border-radius: 50%;
+        transition: all 0.2s ease;
+        opacity: 0.6;
+    }
+    #browser-tab-bar .tab-item .tab-close:hover {
+        background: rgba(255, 0, 0, 0.2);
+        color: #f87171;
+        opacity: 1;
+    }
+    #browser-tab-bar .tab-item.active .tab-close:hover {
+        background: rgba(255, 0, 0, 0.3);
+        color: #ef4444;
+    }
+    /* New Tab Button */
+    #new-tab-button {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        font-size: 16px;
+        flex-shrink: 0;
+        color: var(--text-muted);
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--frosted-border);
+    }
+    #new-tab-button:hover {
+        color: var(--accent-color);
+        border-color: rgba(99, 102, 241, 0.2);
+    }
+    #browser-content-area {
+        position: relative;
+        flex-grow: 1;
+        background: rgba(0, 0, 0, 0.2);
+    }
+    #browser-content-area .tab-content {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden; /* Let content inside scroll */
+    }
+    #browser-content-area .tab-content iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+        background: var(--bg-color); /* Dark bg for iframes */
+    }
+    #browser-content-area .tab-content > div { /* For content apps */
+        width: 100%;
+        height: 100%;
+        overflow-y: auto;
+        background: var(--app-window-bg);
+    }
+    /* --- Enhanced Settings Section --- */
+    .settings-section {
+        margin-bottom: 2rem;
+        padding: 2rem;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
+        border-radius: 16px;
+        border: 1px solid var(--frosted-border);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    }
+    .settings-section:hover {
+        border-color: rgba(99, 102, 241, 0.2);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15),
+                    0 0 20px rgba(99, 102, 241, 0.1);
+        transform: translateY(-2px);
+    }
+    .settings-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        color: var(--text-color);
+        letter-spacing: -0.02em;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    .settings-title::before {
+        content: '';
+        width: 4px;
+        height: 24px;
+        background: linear-gradient(135deg, var(--accent-color) 0%, #8b5cf6 100%);
+        border-radius: 2px;
+        box-shadow: 0 0 12px var(--accent-glow);
+    }
+    /* --- Enhanced Theme Cards --- */
+    .theme-card {
+        padding: 1.5rem;
+        border-radius: 16px;
+        border: 2px solid var(--frosted-border);
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
+        position: relative;
+        overflow: hidden;
+    }
+    .theme-card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, var(--accent-color) 0%, #8b5cf6 100%);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    .theme-card:hover {
+        border-color: rgba(99, 102, 241, 0.3);
+        transform: translateY(-4px) scale(1.02);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2),
+                    0 0 24px rgba(99, 102, 241, 0.15);
+    }
+    .theme-card:hover::before {
+        opacity: 0.05;
+    }
+    .theme-card.selected {
+        border-color: var(--accent-color);
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%);
+        box-shadow: 0 8px 32px rgba(99, 102, 241, 0.3),
+                    0 0 40px rgba(99, 102, 241, 0.2),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+    .theme-card.selected::after {
+        content: '✓';
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 24px;
+        height: 24px;
+        background: var(--accent-color);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: bold;
+        color: white;
+        box-shadow: 0 4px 12px var(--accent-glow);
+    }
+    /* --- Enhanced Wallpaper Thumbnails --- */
+    .wallpaper-thumb {
+        width: 100%;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 12px;
+        cursor: pointer;
+        border: 2px solid var(--frosted-border);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    .wallpaper-thumb:hover {
+        border-color: rgba(99, 102, 241, 0.4);
+        transform: translateY(-4px) scale(1.05);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3),
+                    0 0 24px rgba(99, 102, 241, 0.2);
+    }
+    .wallpaper-thumb.selected {
+        border-color: var(--accent-color);
+        box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4),
+                    0 0 32px rgba(99, 102, 241, 0.3);
+        transform: scale(1.05);
+    }
+    /* --- Enhanced Profile Tabs --- */
+    .profile-tabs {
+        display: flex;
+        margin-bottom: 12px;
+        gap: 8px;
+        background: rgba(0, 0, 0, 0.2);
+        padding: 6px;
+        border-radius: 12px;
+        border: 1px solid var(--frosted-border);
+    }
+    .profile-tab {
+        flex: 1;
+        text-align: center;
+        padding: 10px 16px;
+        cursor: pointer;
+        background: transparent;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        color: var(--text-muted);
+        position: relative;
+    }
+    .profile-tab:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text-color);
+    }
+    .profile-tab.active {
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(139, 92, 246, 0.15) 100%);
+        color: white;
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2),
+                    0 0 16px rgba(99, 102, 241, 0.1);
+    }
+    .profile-tab.active::after {
+        content: '';
+        position: absolute;
+        bottom: -6px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 40%;
+        height: 3px;
+        background: linear-gradient(90deg, transparent, var(--accent-color), transparent);
+        border-radius: 2px;
+        box-shadow: 0 0 8px var(--accent-glow);
+    }
+    /* --- Enhanced Window Styles for Traditional Mode --- */
+    .window-traditional-fullscreen {
+        background: rgba(18, 18, 28, 0.98) !important;
+        backdrop-filter: blur(40px) saturate(180%) !important;
+        -webkit-backdrop-filter: blur(40px) saturate(180%) !important;
+    }
+    /* --- Smooth Scrollbar Styling --- */
+    ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+    ::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 5px;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.5) 0%, rgba(139, 92, 246, 0.5) 100%);
+        border-radius: 5px;
+        border: 2px solid rgba(0, 0, 0, 0.2);
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.7) 0%, rgba(139, 92, 246, 0.7) 100%);
+    }
+    /* --- Enhanced Input Styles in Settings --- */
+    .settings-section input[type="checkbox"] {
+        width: 48px;
+        height: 24px;
+        appearance: none;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        position: relative;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 1px solid var(--frosted-border);
+    }
+    .settings-section input[type="checkbox"]::before {
+        content: '';
+        position: absolute;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: white;
+        top: 2px;
+        left: 2px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    .settings-section input[type="checkbox"]:checked {
+        background: linear-gradient(135deg, var(--accent-color) 0%, #8b5cf6 100%);
+        border-color: var(--accent-color);
+    }
+    .settings-section input[type="checkbox"]:checked::before {
+        left: 26px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     }
 </style>
 </head>
-<body class="layout-desktop">
-
+<body class="layout-traditional"> <!-- Force traditional layout class for styling -->
     <div id="wallpaper-bg"></div>
-
-    <div id="stars-layout" class="hidden fixed inset-0 flex-col items-center justify-center p-4">
-        <div class="w-full max-w-2xl text-center">
-            <h1 class="text-5xl font-bold mb-8 tracking-tight" style="text-shadow: 0 0 30px rgba(255,255,255,0.3);">vøid.2.0</h1>
-            <div id="stars-proxy-form-container" class="mb-8">
+    <div id="cloak-overlay" class="hidden fixed inset-0 z-[9999] bg-cover bg-center"></div>
+    <!-- NEW: Main Application Bar -->
+    <div id="app-bar">
+        <!-- App Launchers -->
+        <div id="app-bar-apps">
+            <!-- 'browser' icon now just focuses/restores the main window -->
+          
+            <div data-app-id="terminal" class="app-icon" title="Terminal"><i class="fas fa-terminal"></i></div>
+          
+            <div data-app-id="music" class="app-icon" title="Music"><i class="fas fa-music"></i></div>
+            <div data-app-id="chat" class="app-icon" title="Chat"><i class="fas fa-comments"></i></div>
+            <div data-app-id="profiles" class="app-icon" title="Profiles"><i class="fas fa-user"></i></div>
+          
+            <div data-app-id="settings" class="app-icon" title="Settings"><i class="fas fa-gear"></i></div>
+        </div>
+        <!-- System Status -->
+        <div id="app-bar-system">
+            <div class="system-pill datetime-container" title="Current Time">
+                <span id="current-time"></span>
+                <span id="current-date" class="hidden md:inline">•</span>
             </div>
-            <div id="stars-app-links" class="flex justify-center items-center space-x-6">
-                <a onclick="openApp('browser')" class="text-lg hover-effect" title="Terminal"><i class="fas fa-terminal"></i></a>
-                <a onclick="openApp('games')" class="text-lg hover-effect" title="Games"><i class="fas fa-gamepad"></i></a>
-                <a onclick="openApp('music')" class="text-lg hover-effect" title="Music"><i class="fas fa-music"></i></a>
-                <a onclick="openApp('chat')" class="text-lg hover-effect" title="Chat"><i class="fas fa-comments"></i></a>
-                <a onclick="openApp('market')" class="text-lg hover-effect" title="App Market"><i class="fas fa-store"></i></a>
-                <a onclick="openApp('settings')" class="text-lg hover-effect" title="Settings"><i class="fas fa-gear"></i></a>
+            <div class="system-pill">
+                <i id="notification-icon" class="fa-solid fa-bell hover-effect" title="Notifications"></i>
+                <i id="volume-icon" class="fa-solid fa-volume-high hover-effect" title="Volume"></i>
+            </div>
+            <div class="system-pill battery-container" title="Battery">
+                <i class="fa-solid fa-battery-three-quarters" id="battery-icon"></i>
+                <span id="battery-percent">Loading...</span>
             </div>
         </div>
     </div>
-
-    <div id="desktop-layout">
-        
-        <div id="hypr-status-bar" class="font-mono">
-            <div id="hypr-workspaces">
-                <span class="mr-2">[1]</span>
-            </div>
-            
-            <div class="flex items-center space-x-4">
-                <div class="hypr-app-launcher" onclick="openApp('browser')"><i class="fas fa-terminal mr-1"></i> Term</div>
-                <div class="hypr-app-launcher" onclick="openApp('chat')"><i class="fas fa-comments mr-1"></i> Chat</div>
-                <div class="hypr-app-launcher" onclick="openApp('settings')"><i class="fas fa-gear mr-1"></i> Config</div>
-                <div id="hypr-window-info"></div>
-            </div>
-
-            <div id="hypr-system-status">
-                <span id="hypr-time"></span> | 
-                <span title="CPU/Temp"><i class="fas fa-microchip"></i> 40%</span>
-            </div>
-        </div>
-
-<div id="top-bar-wrapper" class="fixed top-0 left-0 right-0 p-4 flex items-center justify-center space-x-4 z-10 opacity-0 transition-opacity duration-500">
-    <!-- LEFT GROUP -->
-    <div class="flex items-center space-x-4">
-        <div class="top-bar-pill frosted-glass" title="vøid.2.0 Menu">
-            <span class="font-semibold text-lg tracking-wider">vøid.2.0</span>
-        </div>
-        <div id="desktop-proxy-form-container">
-            <form id="proxy-form" class="top-bar-pill frosted-glass w-64 p-0">
-                <div class="flex items-center w-full h-full px-5">
-                    <i class="fas fa-search text-gray-400 mr-2"></i>
-                    <input type="text" id="proxy-address" placeholder="Search or type a URL" class="bg-transparent placeholder-gray-400 focus:outline-none w-full h-full text-sm" />
-                </div>
-                <input id="proxy-search-engine" value="https://www.duckduckgo.com/search?q=%s" type="hidden"/>
-            </form>
-        </div>
-    </div>
-
-    <!-- CENTERED DATETIME PILL - NO HOVER -->
-    <div class="datetime-container top-bar-pill frosted-glass space-x-2 text-xs font-mono" title="Current Time">
-        <span id="current-time"></span>
-        <span id="current-date" class="hidden md:inline">•</span>
-    </div>
-
-    <!-- RIGHT GROUP -->
-    <div class="flex items-center space-x-4">
-        <div class="top-bar-pill frosted-glass space-x-4 text-sm">
-            <i id="notification-icon" class="fa-solid fa-bell hover-effect" title="Notifications"></i>
-            <i id="volume-icon" class="fa-solid fa-volume-high hover-effect" title="Volume"></i>
-        </div>
-        <div class="top-bar-pill frosted-glass space-x-2 text-xs" title="Battery">
-            <i class="fa-solid fa-battery-three-quarters" id="battery-icon"></i>
-            <span id="battery-percent">Loading...</span>
-        </div>
-    </div>
-</div>
-        
-        <main class="flex flex-col items-center justify-center w-full h-full min-h-screen">
-        </main>
-
-        <div id="dock" class="dock-container frosted-glass flex items-center space-x-4 opacity-0">
-            <div onclick="openApp('browser')" data-app-id="browser" class="dock-icon-link group" title="Terminal"><div class="dock-icon"><i class="fas fa-terminal"></i></div><div class="running-dot" id="dot-browser"></div></div>
-            <div onclick="openApp('games')" data-app-id="games" class="dock-icon-link group" title="Games"><div class="dock-icon"><i class="fas fa-gamepad"></i></div><div class="running-dot" id="dot-games"></div></div>
-            <div onclick="openApp('music')" data-app-id="music" class="dock-icon-link group" title="Music"><div class="dock-icon"><i class="fas fa-music"></i></div><div class="running-dot" id="dot-music"></div></div>
-            <div onclick="openApp('chat')" data-app-id="chat" class="dock-icon-link group" title="Chat"><div class="dock-icon"><i class="fas fa-comments"></i></div><div class="running-dot" id="dot-chat"></div></div>
-            <div onclick="openApp('market')" data-app-id="market" class="dock-icon-link group" title="App Market"><div class="dock-icon"><i class="fas fa-store"></i></div><div class="running-dot" id="dot-market"></div></div>
-            <div onclick="openApp('settings')" data-app-id="settings" class="dock-icon-link group" title="Settings"><div class="dock-icon"><i class="fas fa-gear"></i></div><div class="running-dot" id="dot-settings"></div></div>
-        </div>
-    </div>
-
-    <div id="window-container"></div>
-
-    <!-- Notification Center Panel -->
+  
+    <main class="flex flex-col items-center justify-center w-full h-full min-h-screen">
+        <!-- Main window container -->
+        <div id="window-container"></div>
+    </main>
+    <!-- Floating Panels -->
     <div id="notification-center" class="frosted-glass">
         <h3>Notifications</h3>
         <div id="notifications-list">
-            <!-- Notifications will be added here dynamically -->
             <div class="notification-item">Welcome to vøid.2.0!</div>
-            <div class="notification-item">System update available.</div>
+            <div class="notification-item">Apps now open in tabs.</div>
         </div>
     </div>
-
-    <!-- Volume Control Panel -->
     <div id="volume-control" class="frosted-glass">
         <h3>Volume</h3>
         <input type="range" id="volume-slider" min="0" max="100" value="50" />
         <p>Current Volume: <span id="volume-value">50%</span></p>
     </div>
-
-    <!-- Onboarding Modal -->
-    <div id="onboarding-modal" class="hidden">
-        <div class="onboarding-content">
-            <div id="onboarding-step-1">
-                <h2>Welcome to vøid.2.0</h2>
-                <p>Choose your preferred mode:</p>
-                <div class="onboarding-buttons">
-                    <div class="onboarding-button" onclick="selectMode('desktop')">Desktop</div>
-                    <div class="onboarding-button" onclick="selectMode('traditional')">User Friendly</div>
-                    <div class="onboarding-button" onclick="selectMode('hyprland')">vøid.OG</div>
-                </div>
-            </div>
-            <div id="onboarding-step-2" style="display: none;">
-                <h2>Sign Up</h2>
-                <p>Sign up for vøid.backup and vøid.profiles to save your settings and more.</p>
-                <!-- Placeholder form -->
-                <input type="email" placeholder="Email" class="w-full p-2 mb-2 rounded" />
-                <input type="password" placeholder="Password" class="w-full p-2 mb-2 rounded" />
-                <div class="onboarding-button" onclick="completeSignup()">Sign Up</div>
-                <div class="onboarding-skip" onclick="skipSignup()">Skip for now</div>
-            </div>
-        </div>
-    </div>
-
+  
     <script>
         // --- State and DOM Elements ---
         const windowContainer = document.getElementById('window-container');
-        let currentZIndex = 100;
-        const openHyprWindows = [];
-// FIXED: Window Position Storage - Now properly centers new windows
-function saveWindowPosition(element, appId) {
-    const rect = element.getBoundingClientRect();
-    const state = {
-        appId: appId,
-        width: Math.max(300, rect.width),  // Enforce minimum size
-        height: Math.max(200, rect.height),
-        left: Math.max(20, rect.left),     // Enforce minimum bounds
-        top: Math.max(60, rect.top)        // Account for top bar
-    };
-    localStorage.setItem(`window-${appId}`, JSON.stringify(state));
-}
-
-// FIXED: Load Window Position - ALWAYS returns PROPERLY CENTERED defaults
-function loadWindowPosition(appId) {
-    const saved = localStorage.getItem(`window-${appId}`);
-    if (saved) {
-        try {
-            const state = JSON.parse(saved);
-            // STRICT VALIDATION: Reset if ANY value is invalid
-            const screenW = window.innerWidth;
-            const screenH = window.innerHeight;
-            
-            // Check if position is completely off-screen or invalid
-            if (state.left < -50 || state.top < -50 || 
-                state.left > screenW || state.top > screenH ||
-                state.width < 200 || state.height < 150 ||
-                isNaN(state.left) || isNaN(state.top) ||
-                isNaN(state.width) || isNaN(state.height)) {
-                console.log(`Invalid saved position for ${appId}, resetting to center`);
-                return getDefaultCenteredPosition(600, 400);
-            }
-            
-            // Check if window would be partially off-screen
-            const rightEdge = state.left + state.width;
-            const bottomEdge = state.top + state.height;
-            if (rightEdge > screenW + 50 || bottomEdge > screenH + 50) {
-                console.log(`Saved position for ${appId} off-screen, resetting to center`);
-                return getDefaultCenteredPosition(600, 400);
-            }
-            
-            return {
-                width: Math.max(300, Math.min(state.width, screenW * 0.9)),
-                height: Math.max(200, Math.min(state.height, screenH * 0.9)),
-                left: Math.max(20, Math.min(state.left, screenW - 320)),
-                top: Math.max(60, Math.min(state.top, screenH - 220))
-            };
-        } catch (e) {
-            console.log(`Corrupted saved position for ${appId}, resetting to center`);
-            return getDefaultCenteredPosition(600, 400);
-        }
-    }
-    return getDefaultCenteredPosition(600, 400);
-}
-
-// IMPROVED: Helper function for PERFECT centering
-function getDefaultCenteredPosition(width, height) {
-    const screenW = window.innerWidth;
-    const screenH = window.innerHeight;
-    const left = Math.max(20, Math.floor((screenW - width) / 2));
-    const top = Math.max(60, Math.floor((screenH - height) / 2)); // 60px for top bar
-    return { 
-        width: Math.min(width, screenW * 0.9),
-        height: Math.min(height, screenH * 0.9),
-        left, 
-        top 
-    };
-}
+        let currentZIndex = 100; // Still useful for panels
+      
+        // --- Socket.IO State ---
+        let profileSocket = null;
+        let myProfileId = null;
+        let profileFriends = [];
+        let profileGroups = {};
+        let currentProfileKey = null; // Stores "dm:user1|user2" or "group:groupid"
+        let isProfileSocketConnected = false;
+        // --- NEW: Tab State ---
+        let activeTabId = null;
+        let tabCounter = 0; // To ensure unique tab IDs
+        // --- App Config (MODIFIED) ---
         const appConfig = {
-            'browser': { name: 'Terminal', src: 'jor1k/demos/main.html', type: 'iframe' },
-            'games': { name: 'Games Center', src: 'games.html', type: 'iframe' },
+            'newtab': { name: 'New Tab', type: 'content' }, // Content is generated dynamically
+            'terminal': { name: 'Terminal', src: 'Jor1k/demos/main.html', type: 'iframe' },
             'music': { name: 'Music Player', src: 'music.html', type: 'iframe' },
             'chat': { name: 'vøid.Chat', src: 'chat/index.html', type: 'iframe' },
-            'market': { 
-                name: 'App Market', 
-                type: 'content', 
-                content: '<div class="p-6 text-center text-lg font-light">App Market: <span style="color: var(--accent-color); font-weight: 600;">In progress...</span></div>' 
-            },
+            'profiles': { name: 'vøid.Profiles', type: 'content', content: createProfileWindowContent() },
             'settings': { name: 'System Settings', type: 'content', content: createSettingsContent() },
         };
-        
+      
         let scramjet, connection;
         let initPromise = null;
-
         // --- UI Initialization and Updates ---
-function updateTime() {
-    const now = new Date();
-    const timeString = now.toLocaleTimeString('en-US', { 
-        hour: '2-digit', 
-        minute: '2-digit', 
-        hour12: true 
-    }).replace(' ', '');
-    const dateString = now.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric' 
-    }).replace(/,/, '');
-    
-    const timeElement = document.getElementById('current-time');
-    const dateElement = document.getElementById('current-date');
-    if (timeElement) timeElement.textContent = timeString;
-    if (dateElement) dateElement.textContent = dateString;
-
-    const hyprTimeElement = document.getElementById('hypr-time');
-    if (hyprTimeElement) hyprTimeElement.textContent = `${dateString} | ${timeString}`;
-}
-
-        function setAppRunningStatus(appId, isRunning) {
-            const dotElement = document.getElementById(`dot-${appId}`);
-            if (dotElement) dotElement.classList.toggle('active', isRunning);
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }).replace(' ', '');
+            const dateString = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).replace(/,/, '');
+          
+            const timeElement = document.getElementById('current-time');
+            const dateElement = document.getElementById('current-date');
+            if (timeElement) timeElement.textContent = timeString;
+            if (dateElement) dateElement.textContent = dateString;
         }
-
-        function animateEntry() {
-            const topBar = document.getElementById('top-bar-wrapper');
-            const dock = document.getElementById('dock');
-            if(topBar) topBar.style.opacity = '1';
-            if(dock) dock.style.opacity = '1';
-        }
-
-        // --- Hyprland Tiling Logic ---
-        function updateHyprlandWindows() {
-            const numWindows = openHyprWindows.length;
-            const barHeight = 36;
-            const vpWidth = window.innerWidth;
-            const vpHeight = window.innerHeight;
-            const contentHeight = vpHeight - barHeight;
-            const windowInfo = document.getElementById('hypr-window-info');
-            
-            if (numWindows === 0) {
-                if (windowInfo) windowInfo.textContent = 'Empty Workspace';
-                return;
-            }
-            
-            openHyprWindows.forEach((appId, index) => {
-                const windowElement = document.getElementById(`window-${appId}`);
-                if (!windowElement) return;
-
-                windowElement.style.top = `${barHeight}px`;
-                windowElement.style.maxHeight = 'none';
-                windowElement.style.maxWidth = 'none';
-
-                if (numWindows === 1) {
-                    windowElement.style.width = `${vpWidth}px`;
-                    windowElement.style.height = `${contentHeight}px`;
-                    windowElement.style.left = '0px';
-                } else if (numWindows === 2) {
-                    const halfWidth = vpWidth / 2;
-                    windowElement.style.width = `${halfWidth}px`;
-                    windowElement.style.height = `${contentHeight}px`;
-                    windowElement.style.left = `${index * halfWidth}px`;
-                } else if (numWindows >= 3) {
-                    if (index === 0) {
-                        windowElement.style.width = `${vpWidth * 0.5}px`;
-                        windowElement.style.height = `${contentHeight}px`;
-                        windowElement.style.left = '0px';
-                    } else if (index === 1) {
-                        windowElement.style.width = `${vpWidth * 0.5}px`;
-                        windowElement.style.height = `${contentHeight * 0.5}px`;
-                        windowElement.style.left = `${vpWidth * 0.5}px`;
-                        windowElement.style.top = `${barHeight}px`;
-                    } else if (index === 2) {
-                        windowElement.style.width = `${vpWidth * 0.5}px`;
-                        windowElement.style.height = `${contentHeight * 0.5}px`;
-                        windowElement.style.left = `${vpWidth * 0.5}px`;
-                        windowElement.style.top = `${barHeight + (contentHeight * 0.5)}px`;
-                    }
-                    windowElement.style.display = index >= 3 ? 'none' : 'flex';
-                }
-
-                if (windowInfo && index === numWindows - 1) {
-                    windowInfo.textContent = windowElement.querySelector('.window-title').textContent;
-                }
-            });
-        }
-
-        window.addEventListener('resize', () => {
-            if (localStorage.getItem('vøid-layout') === 'hyprland') {
-                updateHyprlandWindows();
-            }
-        });
-
-        // --- Settings and Personalization ---
+        // --- Settings and Personalization (Largely unchanged, layout section removed) ---
         function createSettingsContent() {
             const themes = {
-                'void-dark': { name: 'Void Dark', colors: ['#0a0a0f', '#6366f1'] },
-                'theme-starlight': { name: 'Starlight', colors: ['#f5f7fa', '#6366f1'] },
+                'void-dark': { name: 'Default', colors: ['#0a0a0f', '#6366f1'] },
+                'theme-starlight': { name: 'Light', colors: ['#f5f7fa', '#6366f1'] },
                 'theme-cyberpunk': { name: 'Cyberpunk', colors: ['#0d0221', '#f032eb'] },
                 'theme-matrix': { name: 'Matrix', colors: ['#000000', '#00ff00'] }
             };
-            
+          
             let themeSwatches = '';
             for (const [key, theme] of Object.entries(themes)) {
                 themeSwatches += `
@@ -1164,892 +1012,930 @@ function updateTime() {
                         <p class="text-xs font-medium text-center">${theme.name}</p>
                     </div>`;
             }
-
             let wallpaperThumbs = '';
             for (let i = 1; i <= 6; i++) {
                 wallpaperThumbs += `<img src="Wallpapers/${i}.png" onerror="this.onerror=null;this.src='https://placehold.co/100x72/2a2a2a/f0f0f0?text=Wall+${i}'" onclick="applyWallpaper('Wallpapers/${i}.png')" class="wallpaper-thumb" data-wallpaper-id="Wallpapers/${i}.png">`;
             }
-
+            let cloakThumbs = '';
+            for (let i = 1; i <= 3; i++) {
+                cloakThumbs += `<img src="cloakimgs/${i}.png" onerror="this.onerror=null;this.src='https://placehold.co/100x72/2a2a2a/f0f0f0?text=Cloak+${i}'" onclick="applyCloakImage('cloakimgs/${i}.png')" class="wallpaper-thumb" data-cloak-id="cloakimgs/${i}.png">`;
+            }
             return `
                 <div class="p-6 overflow-y-auto h-full text-sm">
                     <h2 class="text-2xl font-bold mb-6 tracking-tight">System Settings</h2>
-                    
-                    <div class="settings-section">
-                        <h3 class="settings-title">Stars</h3>
-                        <div class="flex gap-3 flex-wrap">
-                            <button onclick="applyLayout('desktop')" class="layout-button" data-layout-id="desktop">Desktop</button>
-                            <button onclick="applyLayout('traditional')" class="layout-button" data-layout-id="traditional">User Friendly</button>
-                            <button onclick="applyLayout('hyprland')" class="layout-button" data-layout-id="hyprland">vøid.OG</button>
-                        </div>
-                    </div>
-                    
+                  
+                    <!-- Layout section removed -->
+                  
                     <div class="settings-section">
                         <h3 class="settings-title">Color Theme</h3>
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">${themeSwatches}</div>
                     </div>
-                    
+                  
                     <div class="settings-section">
                         <h3 class="settings-title">Wallpaper</h3>
                         <div class="grid grid-cols-3 md:grid-cols-6 gap-4">${wallpaperThumbs}</div>
                     </div>
+                    <div class="settings-section">
+                            <h3 class="settings-title">Proxy Repair</h3>
+                            <p class="text-xs text-gray-400 mb-2">If proxy connections fail, try clearing data.</p>
+                            <button onclick="attemptProxyRepair()" class="layout-button bg-red-500 hover:bg-red-400">Repair Proxy</button>
+                    </div>
+                    <div class="settings-section">
+                        <h3 class="settings-title">Open in Cloak Tab</h3>
+                        <p class="text-xs text-gray-400 mb-2">Open this site in an about:blank tab for privacy.</p>
+                        <button onclick="openInBlank()" class="layout-button bg-green-500 hover:bg-green-400">Open Now</button>
+                    </div>
+                    <div class="settings-section">
+                        <h3 class="settings-title">Cloak on Mouse Leave</h3>
+                        <label class="flex items-center gap-2 mb-4">
+                            <input type="checkbox" id="cloak-enable">
+                            <span>Enable cloak when mouse leaves page</span>
+                        </label>
+                        <h4 class="text-sm font-medium mb-2">Cloak Image</h4>
+                        <div class="grid grid-cols-3 md:grid-cols-6 gap-4">${cloakThumbs}</div>
+                    </div>
                 </div>`;
         }
-
         function applyTheme(themeName) {
             document.body.className = document.body.className.replace(/theme-\w+/g, '');
             if (themeName !== 'void-dark') {
                 document.body.classList.add(themeName);
             }
-            const layoutClass = localStorage.getItem('vøid-layout') || 'desktop';
-            document.body.classList.add(`layout-${layoutClass}`);
+            document.body.classList.add(`layout-traditional`); // Keep base layout class
             localStorage.setItem('vøid-theme', themeName);
-            
+          
             document.querySelectorAll('[data-theme-id]').forEach(el => {
-                if (el.dataset.themeId === themeName) {
-                    el.classList.add('selected');
-                } else {
-                    el.classList.remove('selected');
-                }
+                el.classList.toggle('selected', el.dataset.themeId === themeName);
             });
         }
-
         function applyWallpaper(wallpaperUrl) {
             document.documentElement.style.setProperty('--wallpaper', `url('${wallpaperUrl}')`);
             localStorage.setItem('vøid-wallpaper', wallpaperUrl);
-            
+            document.querySelectorAll('.new-tab-body').forEach(el => {
+                el.style.backgroundImage = `url('${wallpaperUrl}')`;
+            });
+          
             document.querySelectorAll('[data-wallpaper-id]').forEach(el => {
-                if (el.dataset.wallpaperId === wallpaperUrl) {
-                    el.classList.add('selected');
-                } else {
-                    el.classList.remove('selected');
-                }
+                el.classList.toggle('selected', el.dataset.wallpaperId === wallpaperUrl);
             });
         }
-
-        function applyLayout(layoutName) {
-            const isTraditional = layoutName === 'traditional';
-            const isHyprland = layoutName === 'hyprland';
-
-            document.getElementById('desktop-layout').style.display = isTraditional ? 'none' : 'block';
-            document.getElementById('stars-layout').style.display = isTraditional ? 'flex' : 'none';
-            
-            document.body.classList.remove('layout-hyprland', 'layout-desktop', 'layout-traditional');
-            document.body.classList.add(`layout-${layoutName}`);
-
-            const proxyForm = document.getElementById('proxy-form');
-            if (isTraditional) {
-                document.getElementById('stars-proxy-form-container').appendChild(proxyForm);
-            } else {
-                document.getElementById('desktop-proxy-form-container').appendChild(proxyForm);
-            }
-
-            if (isHyprland) {
-                updateHyprlandWindows();
-            } else {
-                document.querySelectorAll('.app-window').forEach(win => {
-                    win.style.resize = 'both';
-                });
-            }
-
-            // Update existing windows
-            document.querySelectorAll('.app-window').forEach(win => {
-                if (isTraditional) {
-                    win.classList.add('window-traditional-fullscreen');
-                } else {
-                    win.classList.remove('window-traditional-fullscreen');
-                }
+        function applyCloakImage(wallpaperUrl) {
+            document.getElementById('cloak-overlay').style.backgroundImage = `url('${wallpaperUrl}')`;
+            localStorage.setItem('cloakImage', wallpaperUrl);
+          
+            document.querySelectorAll('[data-cloak-id]').forEach(el => {
+                el.classList.toggle('selected', el.dataset.cloakId === wallpaperUrl);
             });
-            
-            document.querySelectorAll('[data-layout-id]').forEach(btn => {
-                if (btn.dataset.layoutId === layoutName) {
-                    btn.classList.add('selected');
-                } else {
-                    btn.classList.remove('selected');
-                }
-            });
-            
-            localStorage.setItem('vøid-layout', layoutName);
         }
-        
         function loadUserSettings() {
             const theme = localStorage.getItem('vøid-theme') || 'void-dark';
             const wallpaper = localStorage.getItem('vøid-wallpaper') || 'Wallpapers/2.png';
-            const layout = localStorage.getItem('vøid-layout') || 'desktop';
-            
-            document.body.classList.add(`layout-${layout}`);
+            const cloakImg = localStorage.getItem('cloakImage') || 'cloakimgs/1.png';
+            const cloakEnabled = localStorage.getItem('cloakEnabled') === 'true';
+          
+            // Force traditional layout class
+            document.body.classList.add(`layout-traditional`);
             applyTheme(theme);
             applyWallpaper(wallpaper);
-            applyLayout(layout);
+            applyCloakImage(cloakImg);
+            if (cloakEnabled) {
+                enableCloak();
+            }
+            document.querySelectorAll('[data-cloak-id]').forEach(el => el.classList.toggle('selected', el.dataset.cloakId === cloakImg));
         }
-
-        // FIXED: Window Management - Now properly centers ALL new windows
-        function openApp(appId, initialQuery = null) {
-            const currentLayout = localStorage.getItem('vøid-layout') || 'desktop';
-            const isTraditionalLayout = currentLayout === 'traditional';
-            const isHyprlandLayout = currentLayout === 'hyprland';
-
-            let existingWindow = document.getElementById(`window-${appId}`);
-            
-            // Restore minimized window
+        function openInBlank() {
+            const w = window.open();
+            w.document.open();
+            w.document.write(document.documentElement.outerHTML);
+            w.document.close();
+            w.document.title = 'about:blank';
+        }
+        const showCloak = () => {
+            document.getElementById('cloak-overlay').classList.remove('hidden');
+        }
+        const hideCloak = () => {
+            document.getElementById('cloak-overlay').classList.add('hidden');
+        }
+        function enableCloak() {
+            document.addEventListener('mouseleave', showCloak);
+            document.addEventListener('mouseenter', hideCloak);
+            localStorage.setItem('cloakEnabled', true);
+        }
+        function disableCloak() {
+            document.removeEventListener('mouseleave', showCloak);
+            document.removeEventListener('mouseenter', hideCloak);
+            localStorage.setItem('cloakEnabled', false);
+        }
+        // --- NEW: Browser Content Creator ---
+        function createBrowserContent() {
+            return `
+                <div id="browser-tab-bar" class="flex items-center gap-2 overflow-x-auto">
+                    <!-- Tabs will be injected here -->
+                    <button id="new-tab-button" class="app-icon flex-shrink-0" onclick="addTab('newtab')" title="New Tab">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                <div id="browser-content-area" class="relative flex-grow bg-black/30">
+                    <!-- Tab content (iframes/divs) will be injected here -->
+                </div>
+            `;
+        }
+        // --- NEW: New Tab Content Creator ---
+        const NEW_TAB_STYLES = `
+            /* Styles for the new tab page */
+            .new-tab-body {
+                background-image: var(--wallpaper);
+                background-size: cover;
+                background-position: center;
+                background-repeat: no-repeat;
+                color: var(--text-color);
+                font-family: 'Inter', sans-serif;
+                margin: 0;
+                padding: 1.5rem;
+                height: 100vh;
+                font-size: 0.9rem;
+                overflow-y: auto;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                box-sizing: border-box;
+            }
+            .new-tab-body h1 {
+                font-size: 4rem;
+                font-weight: 800;
+                background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+                letter-spacing: -0.02em;
+                margin-bottom: 3rem;
+                filter: drop-shadow(0 0 20px rgba(99, 102, 241, 0.3));
+                cursor: default;
+                user-select: none;
+            }
+            .new-tab-body .new-tab-search-form {
+                width: 100%;
+                max-width: 600px;
+                position: relative;
+            }
+            .new-tab-body .new-tab-input {
+                background: rgba(255, 255, 255, 0.08) !important;
+                border: 1.5px solid rgba(255, 255, 255, 0.12) !important;
+                border-radius: 14px !important;
+                padding: 0 16px 0 52px !important; /* Make space for icon */
+                width: 100%;
+                height: 56px !important;
+                font-size: 15px !important;
+                font-weight: 500;
+                color: var(--text-color) !important;
+                font-family: 'Inter', sans-serif;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+                transition: all 0.3s ease;
+                outline: none;
+                box-sizing: border-box;
+            }
+            .new-tab-body .new-tab-input::placeholder {
+                color: var(--text-muted) !important;
+                opacity: 0.7;
+                font-weight: 400;
+            }
+            .new-tab-body .new-tab-input:focus {
+                border-color: rgba(99, 102, 241, 0.5) !important;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3),
+                            0 0 0 2px rgba(99, 102, 241, 0.3),
+                            0 0 60px rgba(99, 102, 241, 0.25);
+            }
+            .new-tab-body .new-tab-search-icon {
+                position: absolute;
+                top: 50%;
+                left: 20px;
+                transform: translateY(-50%);
+                font-size: 18px;
+                color: var(--accent-color) !important;
+                transition: all 0.3s ease;
+                pointer-events: none;
+            }
+            .new-tab-body .new-tab-input:focus ~ .new-tab-search-icon {
+                transform: translateY(-50%) scale(1.1);
+                filter: drop-shadow(0 0 8px var(--accent-glow));
+            }
+        `;
+        function createNewTabContent(tabId) {
+            // We need to inject the styles into the div
+            return `
+                <style>${NEW_TAB_STYLES}</style>
+                <div class="new-tab-body">
+                    <h1>vøid.2.0</h1>
+                    <form class="new-tab-search-form" onsubmit="event.preventDefault(); window.parent.handleNewTabSearch('${tabId}', document.getElementById('new-tab-input-${tabId}').value);">
+                        <input type="text" id="new-tab-input-${tabId}" class="new-tab-input" placeholder="Search or type a URL" autofocus />
+                        <i class="fas fa-search new-tab-search-icon"></i>
+                    </form>
+                </div>
+            `;
+        }
+        // --- Profile Window HTML Content (Unchanged) ---
+        function createProfileWindowContent() {
+            // Replicates the structure from profiles/public/index.html
+            return `
+            <div class="profile-window-content flex-grow flex flex-col overflow-hidden">
+                <div class="flex flex-grow overflow-hidden gap-4">
+                    <div class="profile-sidebar flex flex-col w-64 flex-shrink-0">
+                        <div class="profile-tabs flex flex-shrink-0">
+                            <div id="profile-tabFriends" class="profile-tab active flex-1 text-center py-1 px-2 cursor-pointer rounded-t-md">Friends</div>
+                            <div id="profile-tabGroups" class="profile-tab flex-1 text-center py-1 px-2 cursor-pointer rounded-t-md">Groups</div>
+                        </div>
+                        <div id="profile-friendsList" class="profile-list flex-grow overflow-y-auto p-2 rounded-b-md"></div>
+                        <div id="profile-groupsList" class="profile-list flex-grow overflow-y-auto p-2 rounded-b-md hidden"></div>
+                    </div>
+                    <div class="profile-main flex flex-col flex-grow gap-3 overflow-hidden">
+                        <div class="profile-top flex justify-between items-center flex-shrink-0">
+                            <h3 class="text-sm font-medium">Your ID: <span id="profile-myId" class="font-mono text-xs opacity-80">connecting...</span></h3>
+                            </div>
+                        <div id="profile-chatBox" class="flex-grow overflow-y-auto p-3 rounded-md flex flex-col gap-1"></div>
+                        <div id="profile-controls" class="flex gap-2 flex-shrink-0">
+                            <input id="profile-targetInput" placeholder="target username or group id" class="flex-grow p-2 rounded-md text-xs" />
+                            <input id="profile-textInput" placeholder="message" class="flex-grow-[3] p-2 rounded-md text-xs" />
+                            <button id="profile-sendBtn" class="px-3 py-1 rounded-md text-xs">Send</button>
+                        </div>
+                        <div id="profile-createGroupArea" class="flex gap-2 items-center flex-shrink-0 mt-2 pt-2 border-t border-[var(--frosted-border)]">
+                            <input id="profile-groupLabel" placeholder="group label" class="small flex-1 p-1 rounded text-xs" />
+                            <input id="profile-groupMembers" placeholder="members (comma separated)" class="small flex-1 p-1 rounded text-xs" />
+                            <button id="profile-createBtn" class="small px-2 py-0.5 rounded text-xs">Create</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            `;
+        }
+function addNotification(msg) {
+  const list = document.getElementById('notifications-list');
+  if (list) {
+    const item = document.createElement('div');
+    item.className = 'notification-item';
+    item.textContent = msg;
+    list.appendChild(item);
+    // Optionally show the panel briefly
+    const center = document.getElementById('notification-center');
+    if (center) {
+      center.style.display = 'block';
+      setTimeout(() => { center.style.display = 'none'; }, 5000); // Auto-hide after 5s
+    }
+  } else {
+    console.warn('Notification list not found.');
+  }
+}
+        // --- Socket.IO Connection for Profiles (Unchanged) ---
+        function connectProfileSocket() {
+            if (profileSocket && isProfileSocketConnected) return; // Already connected
+            const storedUsername = localStorage.getItem("void_username"); // Reuse stored username if available
+            console.log("Connecting profile socket...");
+            profileSocket = io({
+                path: "/profiles/socket.io/",
+                auth: { username: storedUsername || null }
+            });
+            profileSocket.on("connect", () => {
+                isProfileSocketConnected = true;
+                console.log("Profile socket connected");
+            });
+            profileSocket.on("init", data => {
+                console.log("Profile init received:", data);
+                myProfileId = data.username;
+                localStorage.setItem("void_username", myProfileId); // Save the assigned/confirmed username
+                profileFriends = data.friends || [];
+                profileGroups = {};
+                (data.groups || []).forEach(g => { profileGroups[g.id] = g });
+                // Update UI if profile window/panel is open
+                updateProfileUI();
+            });
+            profileSocket.on("dm", ({ key, entry }) => {
+                const parts = key.split("|");
+                const other = parts[0] === myProfileId ? parts[1] : parts[0];
+                if (!profileFriends.includes(other)) {
+                    profileFriends.push(other);
+                    renderProfileList(profileFriends, document.getElementById("profile-friendsList"));
+                }
+                if (currentProfileKey === "dm:" + key) {
+                    renderProfileMessage(entry);
+                }
+            });
+            profileSocket.on("dmHistory", ({ history }) => {
+                const chatBox = document.getElementById("profile-chatBox");
+                if (chatBox) {
+                    chatBox.innerHTML = "";
+                    (history || []).forEach(renderProfileMessage);
+                }
+            });
+          
+            profileSocket.on("groupCreated", g => {
+                profileGroups[g.id] = g;
+                renderProfileList(Object.values(profileGroups), document.getElementById("profile-groupsList"), true);
+            });
+          
+            profileSocket.on("groupMsg", ({ groupId, entry }) => {
+                if (currentProfileKey === "group:" + groupId) {
+                    renderProfileMessage(entry);
+                }
+            });
+              
+            profileSocket.on("groupHistory", ({ history }) => {
+                const chatBox = document.getElementById("profile-chatBox");
+                if (chatBox) {
+                    chatBox.innerHTML = "";
+                    (history || []).forEach(renderProfileMessage);
+                }
+            });
+            profileSocket.on("addFriend", ({ friend }) => {
+                if (myProfileId && friend !== myProfileId && !profileFriends.includes(friend)) {
+                    profileFriends.push(friend);
+                    renderProfileList(profileFriends, document.getElementById("profile-friendsList"));
+                }
+            });
+            profileSocket.on("system", ({ msg }) => addSystemProfileMessage(msg));
+            profileSocket.on("disconnect", () => {
+                isProfileSocketConnected = false;
+                console.log("Profile socket disconnected");
+                addSystemProfileMessage("Disconnected. Attempting to reconnect...");
+                const myIdEl = document.getElementById('profile-myId');
+                if (myIdEl) myIdEl.textContent = 'disconnected';
+            });
+            profileSocket.on("connect_error", (err) => {
+                console.error("Profile socket connection error:", err);
+                addSystemProfileMessage(`Connection Error: ${err.message}`);
+                const myIdEl = document.getElementById('profile-myId');
+                if (myIdEl) myIdEl.textContent = 'failed to connect';
+            });
+        }
+        // --- Profile UI Update Functions (Unchanged) ---
+        function updateProfileUI() {
+            const myIdEl = document.getElementById('profile-myId');
+            const friendsListEl = document.getElementById("profile-friendsList");
+            const groupsListEl = document.getElementById("profile-groupsList");
+          
+            if (myIdEl) myIdEl.textContent = myProfileId || (isProfileSocketConnected ? 'connected but no ID' : 'connecting...');
+            if (friendsListEl) renderProfileList(profileFriends, friendsListEl);
+            if (groupsListEl) renderProfileList(Object.values(profileGroups), groupsListEl, true);
+            // Re-select active item if needed
+            if (currentProfileKey) {
+                const listItems = document.querySelectorAll('.profile-item');
+                let targetId = '';
+                if (currentProfileKey.startsWith('dm:')) {
+                    const users = currentProfileKey.substring(3).split('|');
+                    targetId = users[0] === myProfileId ? users[1] : users[0];
+                } else if (currentProfileKey.startsWith('group:')) {
+                    targetId = currentProfileKey.substring(6); // group ID
+                }
+                listItems.forEach(item => {
+                    item.classList.toggle('active',
+                        (item.dataset.userId && item.dataset.userId === targetId) ||
+                        (item.dataset.groupId && item.dataset.groupId === targetId)
+                    );
+                });
+            }
+        }
+        function renderProfileList(list, container, isGroup = false) {
+            if (!container) return;
+            container.innerHTML = ""; // Clear existing items
+            (list || []).forEach(item => {
+                const div = document.createElement("div");
+                div.className = "profile-item p-2 rounded cursor-pointer mb-1 text-xs"; // Use utility classes
+              
+                let textContent = '';
+                let clickHandler = null;
+                if (isGroup) {
+                    textContent = `#${item.label}`;
+                    div.dataset.groupId = item.id; // Store group ID
+                    clickHandler = () => {
+                        setActiveProfileItem(div);
+                        currentProfileKey = "group:" + item.id;
+                        profileSocket.emit("getGroup", { groupId: item.id });
+                        const targetInput = document.getElementById("profile-targetInput");
+                        if (targetInput) targetInput.value = `group:${item.id}`; // Optional: fill input
+                    };
+                } else {
+                    textContent = item; // Friend username
+                    div.dataset.userId = item; // Store user ID
+                    clickHandler = () => {
+                        setActiveProfileItem(div);
+                        currentProfileKey = "dm:" + [myProfileId, item].sort().join("|");
+                        profileSocket.emit("getDM", { target: item });
+                        const targetInput = document.getElementById("profile-targetInput");
+                        if (targetInput) targetInput.value = item; // Fill input with username
+                    };
+                }
+                div.textContent = textContent;
+                div.onclick = clickHandler;
+                // Mark active if it matches current key
+                div.classList.toggle('active',
+                    (div.dataset.groupId && currentProfileKey === "group:" + div.dataset.groupId) ||
+                    (div.dataset.userId && currentProfileKey === "dm:" + [myProfileId, div.dataset.userId].sort().join("|"))
+                );
+                  
+                container.appendChild(div);
+            });
+        }
+        function setActiveProfileItem(selectedDiv) {
+            document.querySelectorAll(".profile-item").forEach(i => i.classList.remove("active"));
+            if (selectedDiv) selectedDiv.classList.add("active");
+            // Clear chatbox when switching conversations
+            const chatBox = document.getElementById("profile-chatBox");
+            if (chatBox) chatBox.innerHTML = "";
+        }
+        function renderProfileMessage(entry) {
+            const chatBox = document.getElementById("profile-chatBox");
+            if (!chatBox || !myProfileId) return;
+          
+            const div = document.createElement("div");
+            div.className = "profile-msg-line flex mb-2 " + (entry.from === myProfileId ? "me justify-end" : "them justify-start"); // Use utility classes
+          
+            // Basic HTML sanitization (replace < and >)
+            const safeText = (entry.text || '').replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            const safeFrom = (entry.from || '').replace(/</g, "&lt;").replace(/>/g, "&gt;");
+          
+            div.innerHTML = `<div class="profile-bubble p-2 px-3 rounded-xl max-w-[70%] text-xs">
+                                ${safeText}
+                                <div class="profile-meta text-[10px] opacity-60 mt-0.5">${safeFrom}</div>
+                            </div>`;
+            chatBox.appendChild(div);
+            // Debounce scroll to bottom slightly
+            setTimeout(() => { chatBox.scrollTop = chatBox.scrollHeight; }, 50);
+        }
+        function addSystemProfileMessage(msg) {
+            const chatBox = document.getElementById("profile-chatBox");
+            if (!chatBox) return;
+          
+            const div = document.createElement("div");
+            div.className = "profile-msg-line flex mb-2 them justify-start"; // Display system messages as 'them'
+            // Basic sanitization
+            const safeMsg = (msg || '').replace(/</g, "&lt;").replace(/>/g, "&gt;");
+          
+            div.innerHTML = `<div class="profile-bubble p-2 px-3 rounded-xl max-w-[70%] text-xs" style="opacity:0.7; font-style: italic;">System: ${safeMsg}</div>`;
+            chatBox.appendChild(div);
+            setTimeout(() => { chatBox.scrollTop = chatBox.scrollHeight; }, 50);
+        }
+        // --- Attach Event Listeners for Profile Window (Panel) ---
+        function setupProfileWindowHandlers(panelElement) {
+            if (!panelElement) return; // Ensure panel exists
+            connectProfileSocket(); // Ensure connected when opening profiles
+            updateProfileUI();
+          
+            const sendBtn = panelElement.querySelector("#profile-sendBtn");
+            const createBtn = panelElement.querySelector("#profile-createBtn");
+            const targetInput = panelElement.querySelector("#profile-targetInput");
+            const textInput = panelElement.querySelector("#profile-textInput");
+            const groupLabelInput = panelElement.querySelector("#profile-groupLabel");
+            const groupMembersInput = panelElement.querySelector("#profile-groupMembers");
+            const tabFriends = panelElement.querySelector("#profile-tabFriends");
+            const tabGroups = panelElement.querySelector("#profile-tabGroups");
+            const friendsList = panelElement.querySelector("#profile-friendsList");
+            const groupsList = panelElement.querySelector("#profile-groupsList");
+          
+            // Send Message
+            if (sendBtn) sendBtn.onclick = () => {
+                if (!profileSocket || !isProfileSocketConnected) return addSystemProfileMessage("Not connected.");
+                const target = targetInput.value.trim();
+                const text = textInput.value.trim();
+                if (!target || !text) return;
+                if (target.startsWith("group:")) {
+                    const id = target.substring(6); // Get ID after "group:"
+                    profileSocket.emit("sendGroup", { groupId: id, text });
+                } else {
+                    profileSocket.emit("sendDM", { target, text });
+                }
+                textInput.value = ""; // Clear input after sending
+            };
+          
+            // Send message on Enter key press in text input
+            if (textInput) textInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) { // Send on Enter
+                    e.preventDefault(); // Prevent default behavior
+                    sendBtn.click(); // Trigger send button click
+                }
+            });
+            // Create Group
+            if (createBtn) createBtn.onclick = () => {
+                if (!profileSocket || !isProfileSocketConnected) return addSystemProfileMessage("Not connected.");
+                const label = groupLabelInput.value.trim();
+                const members = groupMembersInput.value.split(",")
+                    .map(x => x.trim())
+                    .filter(Boolean); // Get members, trim whitespace, remove empty entries
+              
+                if (!label) return addSystemProfileMessage("Group label is required.");
+                if (myProfileId && !members.includes(myProfileId)) members.push(myProfileId); // Ensure creator is included
+                profileSocket.emit("createGroup", { label, members });
+              
+                // Clear inputs after attempt
+                groupLabelInput.value = "";
+                groupMembersInput.value = "";
+            };
+            // Tab Switching
+            if (tabFriends && tabGroups && friendsList && groupsList) {
+                tabFriends.onclick = () => {
+                    tabFriends.classList.add("active");
+                    tabGroups.classList.remove("active");
+                    friendsList.style.display = "block";
+                    groupsList.style.display = "none";
+                };
+                tabGroups.onclick = () => {
+                    tabGroups.classList.add("active");
+                    tabFriends.classList.remove("active");
+                    friendsList.style.display = "none";
+                    groupsList.style.display = "block";
+                };
+            }
+        }
+      
+        // --- NEW: Window Management (Simplified for single window) ---
+        function openApp(appId) {
+            // This function now *only* opens the main 'browser' window
+            // We need a way to open the *first* window.
+            // Let's make 'openApp' *only* work for a theoretical 'browser' appId
+            // which is no longer in the config.
+            let existingWindow = document.getElementById(`window-browser`);
             if (existingWindow) {
-                existingWindow.classList.remove('window-hidden');
-                existingWindow.style.zIndex = ++currentZIndex;
-                if (isHyprlandLayout) {
-                    openHyprWindows.splice(openHyprWindows.indexOf(appId), 1);
-                    openHyprWindows.push(appId);
-                    updateHyprlandWindows();
-                }
-                setAppRunningStatus(appId, true);
-                
-                if (initialQuery && appId === 'browser') {
-                    executeProxyLaunch(initialQuery, existingWindow.querySelector('iframe'));
-                }
+                // Just focus it if it exists
+                // In this layout, it's always "focused"
                 return existingWindow;
             }
-
-            if (isHyprlandLayout && openHyprWindows.length >= 3) {
-                console.log("Hyprland window limit reached (max 3 for this demo).");
-                return;
-            }
-
-            const config = appConfig[appId];
-            if (!config) return;
-
-            // FIXED: Always start with PERFECTLY CENTERED position
-            const state = loadWindowPosition(appId);
-
-            let contentHtml = '';
-            if (config.type === 'iframe') {
-                contentHtml = `<div class="flex-grow overflow-hidden"><iframe src="${config.src}" frameborder="0" class="w-full h-full bg-black/30" title="${config.name}"></iframe></div>`;
-            } else {
-                contentHtml = `<div class="flex-grow overflow-y-auto">${config.content}</div>`;
-            }
-            
-            const windowClasses = isTraditionalLayout ? 'app-window window-traditional-fullscreen' : 'app-window';
-
-            const windowControls = isHyprlandLayout
-                ? `<button onclick="closeApp('${appId}')" class="w-3 h-3 bg-red-500 rounded-full hover:bg-red-400 transition-all duration-200" title="Close (Ctrl + Q)"></button>`
-                : `<button onclick="closeApp('${appId}')" class="w-3 h-3 bg-red-500 rounded-full hover:bg-red-400 transition-all duration-200" title="Close"></button>
-                   <button onclick="minimizeApp('${appId}')" class="w-3 h-3 bg-yellow-500 rounded-full hover:bg-yellow-400 transition-all duration-200" title="Minimize"></button>
-                   <button onclick="maximizeApp('${appId}')" class="w-3 h-3 bg-green-500 rounded-full hover:bg-green-400 transition-all duration-200" title="Maximize"></button>`;
-
+          
+            // Create the main browser window shell
+            const windowClasses = 'app-window window-traditional-fullscreen';
             const windowHtml = `
-                <div id="window-${appId}" class="${windowClasses} absolute flex flex-col transition-all duration-400 ease-in-out opacity-0" style="z-index:${++currentZIndex}; width:${state.width}px; height:${state.height}px; left:${state.left}px; top:${state.top}px;">
-                    <div class="window-header flex items-center justify-between p-3 frosted-glass rounded-t-lg">
-                        <div class="flex items-center space-x-2 window-controls">
-                            ${windowControls}
-                        </div>
-                        <div class="text-sm font-medium text-gray-300 window-title">${config.name}</div>
-                        <div class="text-xs text-gray-500 font-mono">${appId.toUpperCase()}</div>
+                <div id="window-browser" class="${windowClasses} absolute flex flex-col" style="z-index: 50; opacity: 0; transform: scale(0.98);">
+                    <div class="flex-grow overflow-hidden flex flex-col">
+                        ${createBrowserContent()}
                     </div>
-                    ${contentHtml}
                 </div>`;
-            
+          
             windowContainer.insertAdjacentHTML('beforeend', windowHtml);
-            const newWindow = document.getElementById(`window-${appId}`);
-            
-            makeWindowDraggable(newWindow);
-            setAppRunningStatus(appId, true);
-            setTimeout(() => { newWindow.style.opacity = '1'; }, 10);
-
-            if (isHyprlandLayout) {
-                openHyprWindows.push(appId);
-                updateHyprlandWindows();
+            const newWindow = document.getElementById(`window-browser`);
+          
+            // Animate entry
+            requestAnimationFrame(() => {
+                newWindow.style.opacity = '1';
+                newWindow.style.transform = 'scale(1)';
+            });
+            // Add the default 'New Tab'
+            addTab('newtab');
+            // Set up 'New Tab' button listener
+            const newTabBtn = newWindow.querySelector('#new-tab-button');
+            if (newTabBtn) {
+                newTabBtn.onclick = () => addTab('newtab');
             }
-
-            if (appId === 'browser') {
-                const iframe = newWindow.querySelector('iframe');
-                if (initialQuery) {
-                    executeProxyLaunch(initialQuery, iframe);
-                }
-            }
-
-            if (appId === 'settings') {
-                const currentLayout = localStorage.getItem('vøid-layout') || 'desktop';
-                const currentTheme = localStorage.getItem('vøid-theme') || 'void-dark';
-                const currentWallpaper = localStorage.getItem('vøid-wallpaper') || 'Wallpapers/2.png';
-
-                newWindow.querySelectorAll('[data-layout-id]').forEach(btn => {
-                    if (btn.dataset.layoutId === currentLayout) {
-                        btn.classList.add('selected');
-                    }
-                });
-
-                newWindow.querySelectorAll('[data-theme-id]').forEach(el => {
-                    if (el.dataset.themeId === currentTheme) {
-                        el.classList.add('selected');
-                    }
-                });
-
-                newWindow.querySelectorAll('[data-wallpaper-id]').forEach(el => {
-                    if (el.dataset.wallpaperId === currentWallpaper) {
-                        el.classList.add('selected');
-                    }
-                });
-            }
-            
+          
             return newWindow;
         }
-
-        function closeApp(appId) {
-            const windowElement = document.getElementById(`window-${appId}`);
-            if (windowElement) {
-                if (localStorage.getItem('vøid-layout') === 'hyprland') {
-                    const index = openHyprWindows.indexOf(appId);
-                    if (index > -1) {
-                        openHyprWindows.splice(index, 1);
+        // --- NEW: Tab Management Functions ---
+        function addTab(appId, customSrc = null, customTitle = null) {
+            let browserWindow = document.getElementById('window-browser');
+            // If browser window doesn't exist, create it. This will also add the first 'terminal' tab.
+            if (!browserWindow) {
+                browserWindow = openApp('browser'); // 'browser' is the shell
+                // If the app to add *was* 'newtab', we're done, as openApp added it.
+                if (appId === 'newtab' && !customSrc) return;
+            }
+            const tabBar = browserWindow.querySelector('#browser-tab-bar');
+            const contentArea = browserWindow.querySelector('#browser-content-area');
+            if (!tabBar || !contentArea) return console.error("Browser window components not found.");
+            const config = appConfig[appId] || {}; // Get config, or empty object for proxy
+            const tabId = `tab-${appId}-${tabCounter++}`;
+            const title = customTitle || config.name || 'Web Page';
+            const safeTitle = title.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            // --- 1. Create Tab Element ---
+            const tabEl = document.createElement('div');
+            tabEl.className = 'tab-item flex items-center justify-between';
+            tabEl.dataset.tabId = tabId;
+            tabEl.innerHTML = `
+                <span class="tab-title truncate">${safeTitle}</span>
+                <i class="fas fa-times tab-close"></i>
+            `;
+          
+            // Insert before the 'new tab' button
+            tabBar.insertBefore(tabEl, tabBar.querySelector('#new-tab-button'));
+            // --- 2. Create Content Element ---
+            const contentEl = document.createElement('div');
+            contentEl.className = 'tab-content';
+            contentEl.id = tabId;
+            contentEl.style.display = 'none'; // Start hidden
+            let contentHtml = '';
+            const src = customSrc || config.src;
+            if (appId === 'newtab') {
+                // Special case: Load new tab content
+                contentHtml = createNewTabContent(tabId);
+                contentEl.innerHTML = contentHtml;
+                // Try to focus the input
+                setTimeout(() => {
+                    const input = contentEl.querySelector(`#new-tab-input-${tabId}`);
+                    if (input) input.focus();
+                }, 100);
+            } else if (config.type === 'content') {
+                // Settings, Market, etc.
+                contentHtml = `<div class="overflow-y-auto h-full w-full">${config.content}</div>`;
+                contentEl.innerHTML = contentHtml;
+                // Re-apply settings selections if it's the settings tab
+                if (appId === 'settings') {
+                    const currentTheme = localStorage.getItem('vøid-theme') || 'void-dark';
+                    const currentWallpaper = localStorage.getItem('vøid-wallpaper') || 'Wallpapers/2.png';
+                    const cloakEnabled = localStorage.getItem('cloakEnabled') === 'true';
+                    const cloakImg = localStorage.getItem('cloakImage') || 'cloakimgs/1.png';
+                    contentEl.querySelectorAll('[data-theme-id]').forEach(el => el.classList.toggle('selected', el.dataset.themeId === currentTheme));
+                    contentEl.querySelectorAll('[data-wallpaper-id]').forEach(el => el.classList.toggle('selected', el.dataset.wallpaperId === currentWallpaper));
+                    contentEl.querySelectorAll('[data-cloak-id]').forEach(el => el.classList.toggle('selected', el.dataset.cloakId === cloakImg));
+                    const cloakCheckbox = contentEl.querySelector('#cloak-enable');
+                    if (cloakCheckbox) {
+                        cloakCheckbox.checked = cloakEnabled;
+                        cloakCheckbox.onchange = (e) => {
+                            if (e.target.checked) {
+                                enableCloak();
+                            } else {
+                                disableCloak();
+                            }
+                        };
                     }
                 }
-
-                windowElement.style.opacity = '0';
-                windowElement.style.transform = 'scale(0.9)';
-                windowElement.classList.add('pointer-events-none');
-                windowElement.addEventListener('transitionend', function handler() {
-                    windowElement.removeEventListener('transitionend', handler);
-                    setAppRunningStatus(appId, false);
-                    windowElement.remove();
-                    
-                    if (localStorage.getItem('vøid-layout') === 'hyprland') {
-                        updateHyprlandWindows();
-                    }
-                });
-            }
-        }
-
-        function minimizeApp(appId) {
-            const windowElement = document.getElementById(`window-${appId}`);
-            if (windowElement) {
-                windowElement.classList.add('window-hidden');
-                setAppRunningStatus(appId, true);
-            }
-        }
-
-        function maximizeApp(appId) {
-            const windowElement = document.getElementById(`window-${appId}`);
-            if (windowElement) {
-                windowElement.classList.toggle('window-maximized');
-                windowElement.style.zIndex = ++currentZIndex;
-                saveWindowPosition(windowElement, appId);
-            }
-        }
-
-        function makeWindowDraggable(element) {
-            const header = element.querySelector('.window-header');
-            if (!header) return;
-
-            // CLEANUP: Remove any existing listeners
-            header.removeEventListener('mousedown', header._dragStart);
-            header.removeEventListener('touchstart', header._dragStart);
-            element.removeEventListener('mousedown', element._focus);
-            element.removeEventListener('touchstart', element._focus);
-
-            let isDragging = false;
-            let startX, startY;
-            let dragSide = null;
-            let initialLeft, initialTop, initialWidth, initialHeight;
-
-            function onPointerDown(e) {
-                const currentLayout = localStorage.getItem('vøid-layout');
-                if (currentLayout === 'hyprland' || 
-                    element.classList.contains('window-maximized') || 
-                    element.classList.contains('window-traditional-fullscreen')) return;
-
-                e.preventDefault();
-                e.stopPropagation();
-                isDragging = true;
-                element.style.transition = 'none';
-                header.style.cursor = 'grabbing';
-
-                const initialEvent = e.touches ? e.touches[0] : e;
-                startX = initialEvent.clientX;
-                startY = initialEvent.clientY;
-
-                const rect = element.getBoundingClientRect();
-                initialLeft = rect.left;
-                initialTop = rect.top;
-                initialWidth = rect.width;
-                initialHeight = rect.height;
-
-                // DETECT WHICH SIDE WAS DRAGGED
-                const edgeThreshold = 10;
-                dragSide = null;
-                if (Math.abs(startX - rect.left) < edgeThreshold) dragSide = 'left';
-                else if (Math.abs(startX - rect.right) < edgeThreshold) dragSide = 'right';
-                else if (Math.abs(startY - rect.top) < edgeThreshold) dragSide = 'top';
-                else if (Math.abs(startY - rect.bottom) < edgeThreshold) dragSide = 'bottom';
-                else dragSide = 'center';
-
-                element.style.zIndex = ++currentZIndex;
-                
-                document.addEventListener('mousemove', onPointerMove);
-                document.addEventListener('touchmove', onPointerMove, { passive: false });
-                document.addEventListener('mouseup', onPointerUp);
-                document.addEventListener('touchend', onPointerUp);
-            }
-
-            function onPointerMove(e) {
-                if (!isDragging) return;
-
-                const moveEvent = e.touches ? e.touches[0] : e;
-                const deltaX = moveEvent.clientX - startX;
-                const deltaY = moveEvent.clientY - startY;
-
-                let newLeft = initialLeft;
-                let newTop = initialTop;
-                let newWidth = initialWidth;
-                let newHeight = initialHeight;
-
-                switch (dragSide) {
-                    case 'left':
-                        newLeft += deltaX;
-                        newWidth -= deltaX;
-                        if (newWidth < 300) {
-                            newLeft = initialLeft + (initialWidth - 300);
-                            newWidth = 300;
-                        }
-                        break;
-                    case 'right':
-                        newWidth += deltaX;
-                        if (newWidth < 300) newWidth = 300;
-                        break;
-                    case 'top':
-                        newTop += deltaY;
-                        newHeight -= deltaY;
-                        if (newHeight < 200) {
-                            newTop = initialTop + (initialHeight - 200);
-                            newHeight = 200;
-                        }
-                        break;
-                    case 'bottom':
-                        newHeight += deltaY;
-                        if (newHeight < 200) newHeight = 200;
-                        break;
-                    default: // center
-                        newLeft += deltaX;
-                        newTop += deltaY;
-                        break;
+                if (appId === 'profiles') {
+                    setupProfileWindowHandlers(contentEl);
+                    updateProfileUI();
                 }
-
-                // Clamp position
-                newLeft = Math.max(-20, Math.min(newLeft, window.innerWidth - newWidth + 20));
-                newTop = Math.max(-40, Math.min(newTop, window.innerHeight - newHeight + 40));
-
-                element.style.left = `${newLeft}px`;
-                element.style.top = `${newTop}px`;
-                element.style.width = `${newWidth}px`;
-                element.style.height = `${newHeight}px`;
+            } else {
+                // Default to iframe (Games, Music, Chat, Proxy, Terminal)
+                contentHtml = `<iframe src="${src}" frameborder="0" title="${title}"></iframe>`;
+                contentEl.innerHTML = contentHtml;
             }
-
-            function onPointerUp(e) {
-                if (isDragging) {
-                    isDragging = false;
-                    element.style.transition = '';
-                    header.style.cursor = 'grab';
-
-                    if (dragSide !== 'center') {
-                        element.style.boxShadow = '0 0 30px rgba(99, 102, 241, 0.6)';
-                        setTimeout(() => {
-                            element.style.boxShadow = 'var(--shadow-xl), 0 0 0 1px rgba(255, 255, 255, 0.03)';
-                        }, 300);
-                    }
-
-                    // SAVE POSITION ON DRAG END
-                    saveWindowPosition(element, element.id.replace('window-', ''));
+          
+            contentArea.appendChild(contentEl);
+            // --- 3. Add Listeners ---
+            tabEl.addEventListener('click', (e) => {
+                if (!e.target.classList.contains('tab-close')) {
+                    switchToTab(tabId);
                 }
-                
-                document.removeEventListener('mousemove', onPointerMove);
-                document.removeEventListener('touchmove', onPointerMove);
-                document.removeEventListener('mouseup', onPointerUp);
-                document.removeEventListener('touchend', onPointerUp);
-            }
-
-            header._dragStart = onPointerDown;
-            element._focus = () => element.style.zIndex = ++currentZIndex;
-
-            header.addEventListener('mousedown', onPointerDown);
-            header.addEventListener('touchstart', onPointerDown, { passive: false });
-            element.addEventListener('mousedown', element._focus);
-            element.addEventListener('touchstart', element._focus);
-
-            const resizeObserver = new ResizeObserver(() => {
-                // SAVE SIZE ON RESIZE
-                saveWindowPosition(element, element.id.replace('window-', ''));
             });
-            resizeObserver.observe(element);
+            tabEl.querySelector('.tab-close').addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent tab switch
+                closeTab(tabId);
+            });
+            // --- 4. Switch to new tab ---
+            switchToTab(tabId);
         }
-
-        // --- Proxy Logic (unchanged) ---
+        function switchToTab(tabId) {
+            const browserWindow = document.getElementById('window-browser');
+            if (!browserWindow) return;
+            const tabBar = browserWindow.querySelector('#browser-tab-bar');
+            const contentArea = browserWindow.querySelector('#browser-content-area');
+            // Deactivate all tabs and content
+            tabBar.querySelectorAll('.tab-item').forEach(tab => tab.classList.remove('active'));
+            contentArea.querySelectorAll('.tab-content').forEach(content => {
+                content.style.display = 'none';
+            });
+            // Activate the selected one
+            const tabEl = tabBar.querySelector(`[data-tab-id="${tabId}"]`);
+            const contentEl = contentArea.querySelector(`#${tabId}`);
+            if (tabEl && contentEl) {
+                tabEl.classList.add('active');
+                contentEl.style.display = 'block';
+                activeTabId = tabId;
+            }
+        }
+        function closeTab(tabId) {
+            const browserWindow = document.getElementById('window-browser');
+            if (!browserWindow) return;
+            const tabBar = browserWindow.querySelector('#browser-tab-bar');
+            const contentArea = browserWindow.querySelector('#browser-content-area');
+          
+            const tabEl = tabBar.querySelector(`[data-tab-id="${tabId}"]`);
+            const contentEl = contentArea.querySelector(`#${tabId}`);
+            if (tabEl) tabEl.remove();
+            if (contentEl) contentEl.remove();
+            // If we closed the active tab, switch to another one
+            if (activeTabId === tabId) {
+                const firstRemainingTab = tabBar.querySelector('.tab-item');
+                if (firstRemainingTab) {
+                    switchToTab(firstRemainingTab.dataset.tabId);
+                } else {
+                    // No tabs left, add a new terminal tab
+                    addTab('newtab');
+                }
+            }
+        }
+        // --- Proxy Logic (MODIFIED) ---
+async function initializeProxy() {
+  if (initPromise) return initPromise;
+  console.log("Initializing Proxy System...");
+  initPromise = (async () => {
+    try {
+      if (!navigator.serviceWorker) {
+        throw new Error("Service workers are not supported in this browser.");
+      }
+    
+      await registerSW();
+      await navigator.serviceWorker.ready;
+      console.log("Service Worker ready.");
+      // Add debugging logs
+      console.log('Checking dependencies:');
+      console.log('typeof $scramjetLoadController:', typeof $scramjetLoadController);
+      console.log('typeof BareMux:', typeof BareMux);
+      if (typeof $scramjetLoadController === 'undefined' || typeof BareMux === 'undefined') {
+        throw new Error("Scramjet or BareMux scripts not loaded. Check /scram/scramjet.all.js and /baremux/index.js. Ensure no 'defer' attribute is blocking execution—try removing it if issues persist.");
+      }
+      const { ScramjetController } = $scramjetLoadController();
+      // Correct Scramjet config: Use 'files' object instead of Ultraviolet-style params
+      scramjet = new ScramjetController({
+        files: {
+          wasm: "/scram/scramjet.wasm.wasm", // Ensure this file is hosted at this path
+          all: "/scram/scramjet.all.js", // Matches your existing script src
+          sync: "/scram/scramjet.sync.js" // Ensure this file is hosted at this path
+        }
+      });
+      await scramjet.init();
+      console.log("Scramjet initialized.");
+      connection = new BareMux.BareMuxConnection("/baremux/worker.js");
+      console.log("BareMux connection initialized.");
+    } catch (err) {
+      console.error("Proxy Initialization Failed:", err);
+      addNotification(`Proxy Init Failed: ${err.message}`);
+      initPromise = null; // Allow retry
+      throw err;
+    }
+  })();
+  return initPromise;
+}
+      
+        // This function is called by the terminal *iframe* or top bar
+        async function handleNewTabSearch(tabId, query) {
+            if (!query || !query.trim()) return;
+          
+            const contentEl = document.getElementById(tabId);
+            if (!contentEl) return console.error("Tab content not found.");
+            contentEl.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);">Loading...</div>`;
+            try {
+                await initializeProxy(); // Ensure proxy is ready
+                const urlToProxy = search(query, "https://www.duckduckgo.com/search?q=%s"); // Determine target URL
+                const wispUrl = (location.protocol === "https:" ? "wss" : "ws") + "://" + location.host + "/wisp/";
+                await connection.setTransport("/epoxy/index.mjs", [{ wisp: wispUrl }]);
+              
+                const proxiedUrl = scramjet.encodeUrl(urlToProxy);
+              
+                // Replace content with iframe
+                contentEl.innerHTML = `<iframe src="${proxiedUrl}" frameborder="0" title="${query}" style="width:100%;height:100%;background:var(--bg-color);"></iframe>`;
+                // Update tab title
+                const tabEl = document.querySelector(`[data-tab-id="${tabId}"] .tab-title`);
+                if (tabEl) tabEl.textContent = query;
+            } catch (err) {
+                console.error("Proxy form submission error:", err);
+                addNotification(`Proxy Error: ${err.message || 'Unknown error'}`); // Fallback for err.message
+                contentEl.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#ef4444;">Error: ${err.message || 'Unknown error'}</div>`;
+            }
+        }
+      
         async function attemptProxyRepair() {
             console.log(`Attempting to repair proxy state by clearing data and reloading...`);
+            addNotification("Attempting proxy repair...");
             try {
                 const registration = await navigator.serviceWorker.getRegistration();
                 if (registration && await registration.unregister()) {
                     console.log('Service Worker unregistered successfully.');
                 }
-                
+              
                 if (window.caches) {
                     const keys = await window.caches.keys();
                     await Promise.all(keys.map(key => window.caches.delete(key)));
                     console.log('All caches cleared.');
                 }
-
                 if (window.indexedDB) {
-                    const dbsToDelete = ['scramjet_vfs', 'epoxy_state', '$scramjet'];
-                    if (window.indexedDB.databases) {
-                        const allDbs = await window.indexedDB.databases();
-                        allDbs.forEach(db => {
-                            if (!dbsToDelete.includes(db.name)) {
-                                dbsToDelete.push(db.name);
-                            }
-                        });
+                    const dbsToDelete = ['scramjet_vfs', 'epoxy_state', '$scramjet']; // Add known DBs
+                    if (window.indexedDB.databases) { // Check if supported
+                        try {
+                            const allDbs = await window.indexedDB.databases();
+                            allDbs.forEach(db => {
+                                if (db.name && !dbsToDelete.includes(db.name)) {
+                                    dbsToDelete.push(db.name);
+                                }
+                            });
+                        } catch (dbError) { console.warn("Could not list IndexedDB databases:", dbError)}
                     }
-                    
+                  
                     await Promise.all(dbsToDelete.map(dbName => new Promise((resolve) => {
                         console.log(`Attempting to delete IndexedDB: ${dbName}`);
                         const req = window.indexedDB.deleteDatabase(dbName);
                         req.onsuccess = () => { console.log(`Deleted DB: ${dbName}`); resolve(); };
-                        req.onerror = (e) => { console.warn(`Error deleting DB ${dbName}:`, e); resolve(); };
-                        req.onblocked = (e) => { console.warn(`Blocked deleting DB ${dbName}:`, e); resolve(); };
+                        req.onerror = (e) => { console.warn(`Error deleting DB ${dbName}:`, e); resolve(); }; // Continue on error
+                        req.onblocked = (e) => { console.warn(`Blocked deleting DB ${dbName}:`, e); resolve(); }; // Continue on block
                     })));
-                    console.log('IndexedDB databases cleared.');
+                    console.log('IndexedDB database deletion attempts finished.');
                 }
-
                 // Clear application data
                 localStorage.clear();
                 sessionStorage.clear();
-
+                console.log("Local/Session Storage cleared.");
+                addNotification("Proxy data cleared. Reloading page...");
             } catch (err) {
                 console.error('Error during repair attempt:', err);
+                addNotification(`Repair Error: ${err.message}`);
             } finally {
-                window.location.reload();
+                setTimeout(() => window.location.reload(), 1500);
             }
         }
-
-        async function initializeProxy() {
-            if (initPromise) return initPromise;
-
-            initPromise = (async () => {
-                try {
-                    if (!navigator.serviceWorker) throw new Error("Service Workers not supported.");
-                    if (typeof registerSW === 'function') await registerSW();
-                    await navigator.serviceWorker.ready;
-                    
-                    if (typeof $scramjetLoadController === 'undefined' || typeof BareMux === 'undefined') {
-                        throw new Error("Core proxy scripts failed to load in time.");
-                    }
-
-                    console.log("Initializing Scramjet and BareMux connection...");
-                    const { ScramjetController } = $scramjetLoadController();
-                    scramjet = new ScramjetController({ files: { wasm: '/scram/scramjet.wasm.wasm', all: '/scram/scramjet.all.js', sync: '/scram/scramjet.sync.js' } });
-                    await scramjet.init();
-                    connection = new BareMux.BareMuxConnection("/baremux/worker.js");
-                    
-                    console.log("Proxy system initialized successfully.");
-                } catch (err) {
-                    initPromise = null;
-                    console.error("Proxy initialization failed:", err);
-                    throw err;
+      
+        // --- Panel Toggling Logic ---
+        const allPanels = ['notification-center', 'volume-control'];
+        function togglePanel(panelId) {
+            const panel = document.getElementById(panelId);
+            if (!panel) return;
+            const isOpening = panel.style.display === 'none' || panel.style.display === '';
+            // Close all other panels
+            allPanels.forEach(id => {
+                if (id !== panelId) {
+                    const p = document.getElementById(id);
+                    if (p) p.style.display = 'none';
                 }
-            })();
-            
-            return initPromise;
+            });
+            // Toggle the target panel
+            panel.style.display = isOpening ? 'flex' : 'none'; // Use 'flex' for profile panel
         }
-
-        const TERMINAL_STYLES = `
-            body {
-                background-color: #0a0a0f;
-                color: #00FF00;
-                font-family: 'Fira Code', 'Courier New', monospace;
-                margin: 0;
-                padding: 1.5rem;
-                height: 100vh;
-                font-size: 0.9rem;
-                white-space: pre-wrap;
-                overflow-y: auto;
-            }
-            h2 { color: #6366f1; font-size: 1.1rem; margin-bottom: 0.75rem; font-weight: 600; }
-            p { margin: 0.3rem 0; line-height: 1.6; }
-            .prompt { color: #6366f1; margin-right: 8px; font-weight: 600; }
-            .error { color: #ef4444; font-weight: bold; }
-            button { 
-                background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); 
-                color: white; 
-                padding: 10px 20px; 
-                border-radius: 8px; 
-                border: none; 
-                cursor: pointer; 
-                margin-top: 1rem; 
-                font-weight: 600;
-                box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-                transition: all 0.3s ease;
-            }
-            button:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
-            }
-            .input-line { display: flex; align-items: center; margin-top: 12px; }
-            .input-line input { 
-                background: rgba(255, 255, 255, 0.05); 
-                border: 1px solid rgba(99, 102, 241, 0.3);
-                border-radius: 6px;
-                color: #FFFFFF; 
-                font-family: 'Fira Code', monospace; 
-                flex-grow: 1; 
-                padding: 8px 12px;
-                margin-left: 8px;
-                outline: none;
-                transition: all 0.3s ease;
-            }
-            .input-line input:focus {
-                border-color: #6366f1;
-                box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-            }
-        `;
-
-        function showTerminalMessage(iframe, title, message = '', showRepair = false) {
-            const repairButtonHtml = showRepair ? `<button onclick="parent.attemptProxyRepair()">[ FIX PROXY ]</button>` : '';
-            
-            iframe.contentWindow.document.open();
-            iframe.contentWindow.document.write(`
-                <html>
-                <head><style>${TERMINAL_STYLES}</style></head>
-                <body>
-                    <h2>▸ vøid.TERMINAL // ${title}</h2>
-                    <p>${message}</p>
-                    ${showRepair ? `<p class="error">⚠ System Error Detected. Attempt repair?</p>${repairButtonHtml}` : ''}
-                    <p class="prompt" style="color: #64748b; margin-top: 24px; font-size: 0.85rem;">[Use top bar or global search to launch URL]</p>
-                </body>
-                </html>
-            `);
-            iframe.contentWindow.document.close();
-        }
-
-        function loadTerminalPrompt(iframe, appId) {
-            iframe.contentWindow.document.open();
-            iframe.contentWindow.document.write(`
-                <html>
-                <head>
-                    <title>${appConfig[appId].name} Input</title>
-                    <style>${TERMINAL_STYLES}</style>
-                </head>
-                <body>
-                    <form id="terminal-form" onsubmit="event.preventDefault(); window.parent.executeProxyLaunch(document.getElementById('terminal-input').value, window.parent.document.getElementById('window-${appId}').querySelector('iframe'));">
-                        <div class="input-line">
-                            <span class="prompt">$</span>
-                            <input type="text" id="terminal-input" placeholder="Enter URL or search term..." autofocus />
-                        </div>
-                    </form>
-                    <p style="color: #64748b; margin-top: 24px; font-size: 0.85rem;">💡 Tip: Type a URL (e.g., example.com) or a search query.</p>
-                </body>
-                </html>
-            `);
-            iframe.contentWindow.document.close();
-            iframe.onload = () => {
-                iframe.contentDocument.getElementById('terminal-input')?.focus();
-            };
-        }
-
-        async function executeProxyLaunch(query, iframe) {
-            if (!query.trim()) return;
-
-            const searchEngineInput = document.getElementById("proxy-search-engine");
-
-            try {
-                showTerminalMessage(iframe, "Initializing", "Establishing secure connection...");
-                await initializeProxy();
-
-                let url;
-                try {
-                    url = new URL(query).toString();
-                } catch {
-                    try {
-                        url = new URL(`http://${query}`).toString();
-                        if (!new URL(url).hostname.includes('.')) throw new Error();
-                    } catch {
-                        url = searchEngineInput.value.replace("%s", encodeURIComponent(query));
-                    }
-                }
-                
-                showTerminalMessage(iframe, "Connecting", `Navigating to: ${url}`);
-                const wispUrl = (location.protocol === "https:" ? "wss" : "ws") + "://" + location.host + "/wisp/";
-                await connection.setTransport("/epoxy/index.mjs", [{ wisp: wispUrl }]);
-                iframe.src = scramjet.encodeUrl(url);
-
-            } catch (err) {
-                showTerminalMessage(iframe, "Error", `Failed to initialize: ${err.message}`, true);
-            }
-        }
-
-        function setupProxy() {
-            const proxyForm = document.getElementById('proxy-form');
-            if (!proxyForm) return;
-
-            proxyForm.addEventListener('submit', async (event) => {
-                event.preventDefault();
-                const addressInput = document.getElementById("proxy-address");
-                const query = addressInput.value.trim();
-                addressInput.value = '';
-                if (!query) return;
-                
-                await openWebWindow(query);
+        // --- NEW: Top Bar Launcher Setup ---
+        function setupTopBarAppLaunchers() {
+            document.querySelectorAll('#app-bar-apps .app-icon').forEach(icon => {
+                const appId = icon.dataset.appId;
+                if (!appId) return;
+                // All apps open as tabs
+                icon.onclick = () => addTab(appId);
             });
         }
-
-        async function openWebWindow(query) {
-            const searchEngineInput = document.getElementById("proxy-search-engine");
-
-            try {
-                const addressInput = document.getElementById("proxy-address");
-                const originalPlaceholder = addressInput.placeholder;
-                addressInput.placeholder = "Loading...";
-                addressInput.disabled = true;
-
-                await initializeProxy();
-
-                let url;
-                try {
-                    url = new URL(query).toString();
-                } catch {
-                    try {
-                        url = new URL(`http://${query}`).toString();
-                        if (!new URL(url).hostname.includes('.')) throw new Error();
-                    } catch {
-                        url = searchEngineInput.value.replace("%s", encodeURIComponent(query));
-                    }
-                }
-
-                const wispUrl = (location.protocol === "https:" ? "wss" : "ws") + "://" + location.host + "/wisp/";
-                await connection.setTransport("/epoxy/index.mjs", [{ wisp: wispUrl }]);
-                const proxiedUrl = scramjet.encodeUrl(url);
-
-                createWebBrowserWindow(proxiedUrl, query);
-
-                setTimeout(() => {
-                    addressInput.placeholder = originalPlaceholder;
-                    addressInput.disabled = false;
-                }, 500);
-
-            } catch (err) {
-                const addressInput = document.getElementById("proxy-address");
-                addressInput.placeholder = "Error - Click Settings > Repair Proxy";
-                addressInput.disabled = false;
-                setTimeout(() => {
-                    addressInput.placeholder = originalPlaceholder;
-                }, 3000);
-                console.error("Web window failed:", err);
+        // --- Window Load (MODIFIED) ---
+        window.onload = () => {
+            // --- Initialization ---
+            updateTime();
+            setInterval(updateTime, 1000);
+            loadUserSettings(); // Sets theme, wallpaper, and layout class
+            setupTopBarAppLaunchers(); // Setup app icon listeners
+            connectProfileSocket(); // Connect socket early on load
+          
+            // Automatically open the main browser window on load
+            openApp('browser'); // This will create the shell and add the default 'newtab' tab
+            // --- Event Listeners for Panels ---
+            document.getElementById('notification-icon')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                togglePanel('notification-center');
+            });
+            document.getElementById('volume-icon')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                togglePanel('volume-control');
+            });
+          
+            const volumeSlider = document.getElementById('volume-slider');
+            const volumeValue = document.getElementById('volume-value');
+            if (volumeSlider && volumeValue) {
+                volumeSlider.addEventListener('input', () => {
+                    volumeValue.textContent = `${volumeSlider.value}%`;
+                });
             }
-        }
-
-        function createWebBrowserWindow(src, title) {
-            const windowId = `web-${Date.now()}`;
-            const state = getDefaultCenteredPosition(800, 600); // FIXED: Perfect center
-            
-            const windowHtml = `
-            <div id="window-${windowId}" class="app-window absolute flex flex-col transition-all duration-400 ease-in-out opacity-0" style="z-index:${++currentZIndex}; width:${state.width}px; height:${state.height}px; left:${state.left}px; top:${state.top}px;">
-                <div class="window-header flex items-center justify-between p-3 frosted-glass rounded-t-lg">
-                    <div class="flex items-center space-x-2 window-controls">
-                        <button onclick="closeApp('${windowId}')" class="w-3 h-3 bg-red-500 rounded-full hover:bg-red-400 transition-all duration-200" title="Close"></button>
-                        <button onclick="minimizeApp('${windowId}')" class="w-3 h-3 bg-yellow-500 rounded-full hover:bg-yellow-400 transition-all duration-200" title="Minimize"></button>
-                        <button onclick="maximizeApp('${windowId}')" class="w-3 h-3 bg-green-500 rounded-full hover:bg-green-400 transition-all duration-200" title="Maximize"></button>
-                    </div>
-                    <div class="text-sm font-medium text-gray-300 window-title">Web: ${title}</div>
-                    <div class="text-xs text-gray-500 font-mono">WEB</div>
-                </div>
-                <div class="flex-grow overflow-hidden">
-                    <iframe src="${src}" frameborder="0" class="w-full h-full bg-black/30" title="Web Browser"></iframe>
-                </div>
-            </div>`;
-
-            windowContainer.insertAdjacentHTML('beforeend', windowHtml);
-            const newWindow = document.getElementById(`window-${windowId}`);
-            makeWindowDraggable(newWindow);
-            setTimeout(() => { newWindow.style.opacity = '1'; }, 10);
-
-            // SAVE WEB WINDOW POSITION
-            saveWindowPosition(newWindow, windowId);
-        }
-
-        async function executeDirectBrowserWindow(query) {
-            const searchEngineInput = document.getElementById("proxy-search-engine");
-
-            try {
-                const addressInput = document.getElementById("proxy-address");
-                const originalPlaceholder = addressInput.placeholder;
-                addressInput.placeholder = "Opening...";
-                addressInput.disabled = true;
-
-                await initializeProxy();
-
-                let url;
-                try {
-                    url = new URL(query).toString();
-                } catch {
-                    try {
-                        url = new URL(`http://${query}`).toString();
-                        if (!new URL(url).hostname.includes('.')) throw new Error();
-                    } catch {
-                        url = searchEngineInput.value.replace("%s", encodeURIComponent(query));
-                    }
+          
+            // --- Click-outside listener for panels ---
+            document.addEventListener('click', (e) => {
+                const isOutsideNotifications = !e.target.closest('#notification-icon') && !e.target.closest('#notification-center');
+                const isOutsideVolume = !e.target.closest('#volume-icon') && !e.target.closest('#volume-control');
+                if (isOutsideNotifications) {
+                    const nc = document.getElementById('notification-center');
+                    if(nc) nc.style.display = 'none';
                 }
-
-                const wispUrl = (location.protocol === "https:" ? "wss" : "ws") + "://" + location.host + "/wisp/";
-                await connection.setTransport("/epoxy/index.mjs", [{ wisp: wispUrl }]);
-                
-                const proxiedUrl = scramjet.encodeUrl(url);
-                const newWindow = window.open(proxiedUrl, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
-                
-                setTimeout(() => {
-                    addressInput.placeholder = originalPlaceholder;
-                    addressInput.disabled = false;
-                }, 500);
-
-            } catch (err) {
-                const addressInput = document.getElementById("proxy-address");
-                addressInput.placeholder = "Error - Click Settings > Repair Proxy";
-                addressInput.disabled = false;
-                setTimeout(() => {
-                    addressInput.placeholder = originalPlaceholder;
-                }, 3000);
-                console.error("Direct browser failed:", err);
-            }
-        }
-
-// Function to add a new notification
-function addNotification(message) {
-    const list = document.getElementById('notifications-list');
-    const item = document.createElement('div');
-    item.classList.add('notification-item');
-    item.textContent = message;
-    list.appendChild(item);
-}
-
-// Toggle panel visibility
-function togglePanel(panelId) {
-    const panel = document.getElementById(panelId);
-    if (panel.style.display === 'block') {
-        panel.style.display = 'none';
-    } else {
-        // Close other panels if open
-        document.querySelectorAll('#notification-center, #volume-control').forEach(p => {
-            if (p.id !== panelId) p.style.display = 'none';
-        });
-        panel.style.display = 'block';
-    }
-}
-
-function startOnboarding() {
-    const modal = document.getElementById('onboarding-modal');
-    modal.classList.remove('hidden');
-    setTimeout(() => modal.classList.add('visible'), 10);
-}
-
-function selectMode(mode) {
-    applyLayout(mode);
-    document.getElementById('onboarding-step-1').style.display = 'none';
-    document.getElementById('onboarding-step-2').style.display = 'block';
-}
-
-function completeSignup() {
-    // Placeholder for signup logic
-    alert('Signup complete! (Placeholder)');
-    finishOnboarding();
-}
-
-function skipSignup() {
-    finishOnboarding();
-}
-
-function finishOnboarding() {
-    localStorage.setItem('onboarded', 'true');
-    const modal = document.getElementById('onboarding-modal');
-    modal.classList.remove('visible');
-    setTimeout(() => modal.classList.add('hidden'), 500);
-}
-
-window.onload = () => {
-    // 🔧 RESET ALL CORRUPTED POSITIONS ON LOAD
-    Object.keys(appConfig).forEach(appId => {
-        const saved = localStorage.getItem(`window-${appId}`);
-        if (saved) {
-            try {
-                const state = JSON.parse(saved);
-                if (state.left < 0 || state.top < 0 || 
-                    state.left > window.innerWidth || state.top > window.innerHeight) {
-                    localStorage.removeItem(`window-${appId}`);
-                    console.log(`🧹 Cleared invalid position for ${appId}`);
+                if (isOutsideVolume) {
+                    const vc = document.getElementById('volume-control');
+                    if(vc) vc.style.display = 'none';
                 }
-            } catch (e) {
-                localStorage.removeItem(`window-${appId}`);
-            }
-        }
-    });
-    
-    updateTime();
-    setInterval(updateTime, 1000);
-    loadUserSettings();
-    setupProxy();
-    animateEntry();
-
-    // Onboarding check
-    if (!localStorage.getItem('onboarded')) {
-        startOnboarding();
-    }
-
-    // Setup Notification Center
-    const notificationIcon = document.getElementById('notification-icon');
-    notificationIcon.addEventListener('click', () => togglePanel('notification-center'));
-
-    // Setup Volume Control
-    const volumeIcon = document.getElementById('volume-icon');
-    volumeIcon.addEventListener('click', () => togglePanel('volume-control'));
-
-    const volumeSlider = document.getElementById('volume-slider');
-    const volumeValue = document.getElementById('volume-value');
-    volumeSlider.addEventListener('input', () => {
-        volumeValue.textContent = `${volumeSlider.value}%`;
-        // Here you can add logic to set system volume if using Web Audio API
-    });
-
-    // Close panels when clicking outside
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('#notification-icon') && !e.target.closest('#notification-center')) {
-            document.getElementById('notification-center').style.display = 'none';
-        }
-        if (!e.target.closest('#volume-icon') && !e.target.closest('#volume-control')) {
-            document.getElementById('volume-control').style.display = 'none';
-        }
-    });
-};
+            });
+              
+        };
     </script>
-<script>
-// Real battery - works with YOUR exact styling!
-if ('getBattery' in navigator) {
-    navigator.getBattery().then(b => {
-        function updateBattery() {
-            const level = Math.round(b.level * 100);
-            const icon = document.getElementById('battery-icon');
-            const percent = document.getElementById('battery-percent');
-            
-            // Update percentage
-            percent.textContent = level + '%';
-            
-            // Change icon based on level
-            if (level >= 80) {
-                icon.className = 'fa-solid fa-battery-full';
-            } else if (level >= 60) {
-                icon.className = 'fa-solid fa-battery-three-quarters';
-            } else if (level >= 40) {
-                icon.className = 'fa-solid fa-battery-half';
-            } else if (level >= 20) {
-                icon.className = 'fa-solid fa-battery-quarter';
-            } else {
-                icon.className = 'fa-solid fa-battery-empty';
-            }
+    <script>
+        // --- Real Battery Script (unchanged) ---
+        if ('getBattery' in navigator) {
+            navigator.getBattery().then(b => {
+                function updateBattery() {
+                    const level = Math.round(b.level * 100);
+                    const icon = document.getElementById('battery-icon');
+                    const percent = document.getElementById('battery-percent');
+                    if (!icon || !percent) return;
+                  
+                    percent.textContent = level + '%';
+                  
+                    if (b.charging) {
+                        icon.className = 'fa-solid fa-bolt'; // Charging icon
+                    } else if (level >= 80) icon.className = 'fa-solid fa-battery-full';
+                    else if (level >= 60) icon.className = 'fa-solid fa-battery-three-quarters';
+                    else if (level >= 40) icon.className = 'fa-solid fa-battery-half';
+                    else if (level >= 20) icon.className = 'fa-solid fa-battery-quarter';
+                    else icon.className = 'fa-solid fa-battery-empty';
+                }
+                updateBattery();
+                b.addEventListener('levelchange', updateBattery);
+                b.addEventListener('chargingchange', updateBattery); // Update on charging status change
+            }).catch(e => console.error("Battery API error:", e));
+        } else {
+            const batteryPercent = document.getElementById('battery-percent');
+            const batteryIcon = document.getElementById('battery-icon');
+            if(batteryPercent) batteryPercent.textContent = 'N/A';
+            if(batteryIcon) batteryIcon.className = 'fa-solid fa-battery-slash';
         }
-        updateBattery();
-        b.addEventListener('levelchange', updateBattery);
-    });
-}
-</script>
+    </script>
 </body>
 </html>
