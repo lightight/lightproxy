@@ -1,116 +1,176 @@
 import { createServer } from "node:http";
-import { fileURLToPath } from "url";
-import { hostname } from "node:os";
-import { server as wisp, logging } from "@mercuryworkshop/wisp-js/server";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import Fastify from "fastify";
 import fastifyStatic from "@fastify/static";
-import path from "path";
+import fetch from "node-fetch";
+import ytSearch from "yt-search";
+import fs from "node:fs";
 
-// import your profiles plugin
-import profilesPlugin from "../profiles/server.js"; // adjust path if needed
+// 1. Import the Wrapper
+import YTDlpWrap from 'yt-dlp-wrap';
 
-import { scramjetPath } from "@mercuryworkshop/scramjet/path";
-import { epoxyPath } from "@mercuryworkshop/epoxy-transport";
-import { baremuxPath } from "@mercuryworkshop/bare-mux/node";
+// Resolve paths
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-const publicPath = fileURLToPath(new URL("../public/", import.meta.url));
+// Path where your music player HTML (index.html) is located
+const musicPublicPath = join(__dirname, "../music/public");
 
-// Wisp config
-logging.set_level(logging.NONE);
-Object.assign(wisp.options, {
-  allow_udp_streams: false,
-  hostname_blacklist: [/example\.com/],
-  dns_servers: ["1.1.1.3", "1.0.0.3"]
-});
+// -----------------------------
+//  CROSS-PLATFORM BINARY PATH
+// -----------------------------
+// Check if running on Windows or Linux/Mac
+const binaryName = process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp';
+const binaryPath = join(__dirname, binaryName);
 
 const fastify = Fastify({
   serverFactory: (handler) => {
     return createServer()
       .on("request", (req, res) => {
+        // Security headers for isolation
         res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
-        res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+        res.setHeader("Cross-Origin-Embedder-Policy", "credentialless");
         handler(req, res);
-      })
-      .on("upgrade", (req, socket, head) => {
-        if (req.url.endsWith("/wisp/")) {
-          wisp.routeRequest(req, socket, head);
-        } // Removed else socket.end() to allow other upgrade handlers (e.g., Socket.IO) to process the request
       });
   },
 });
 
-// MOUNT PROFILES FIRST so /profiles serves its own index.html
-fastify.register(profilesPlugin, { prefix: "/profiles" });
-
-// main static site
-fastify.register(fastifyStatic, {
-  root: publicPath,
-  decorateReply: true // Keep true for main site's sendFile in notFoundHandler
+// Register Static Files (Serve the Music Player)
+fastify.register(fastifyStatic, { 
+    root: musicPublicPath, 
+    prefix: "/music/", 
+    decorateReply: false 
 });
 
-// other static folders
-fastify.register(fastifyStatic, {
-  root: scramjetPath,
-  prefix: "/scram/",
-  decorateReply: false,
+// Redirect root to music player
+fastify.get("/", async (req, reply) => {
+  return reply.redirect("/music/");
 });
 
-fastify.register(fastifyStatic, {
-  root: epoxyPath,
-  prefix: "/epoxy/",
-  decorateReply: false,
-});
+// -----------------------------
+//  AUTO-UPDATING AUDIO ENGINE
+// -----------------------------
+let ytDlpWrap;
 
-fastify.register(fastifyStatic, {
-  root: baremuxPath,
-  prefix: "/baremux/",
-  decorateReply: false,
-});
-
-// 404 handler for main site (but not /profiles) - CORRECTED
-fastify.setNotFoundHandler((req, reply) => {
-  // If the request is NOT for the /profiles prefix, serve the main 404 page.
-  if (!req.raw.url.startsWith("/profiles")) {
-    // Check if decorateReply is available before using sendFile
-    if (reply.sendFile) { 
-        return reply.code(404).type("text/html").sendFile("404.html");
-    } else {
-        // Fallback if sendFile isn't decorated (shouldn't happen with current setup)
-        console.error("reply.sendFile is not available for main 404 handler.");
-        return reply.code(404).type("text/plain").send("Not Found");
+// Initialize Engine
+(async () => {
+    try {
+        console.log(`[Engine] OS detected: ${process.platform}`);
+        console.log(`[Engine] Checking for ${binaryName}...`);
+        
+        if (!fs.existsSync(binaryPath)) {
+            console.log("[Engine] Binary not found. Downloading latest version from GitHub...");
+            
+            // This function automatically detects the OS and downloads the correct binary
+            // We just provide the path where we want to save it
+            await YTDlpWrap.default.downloadFromGithub(binaryPath);
+            
+            // On Linux/Mac, we must ensure the file is executable
+            if (process.platform !== 'win32') {
+                fs.chmodSync(binaryPath, '755');
+            }
+            
+            console.log("[Engine] Download complete!");
+        } else {
+             console.log("[Engine] Binary found at: " + binaryPath);
+        }
+        
+        ytDlpWrap = new YTDlpWrap.default(binaryPath);
+        console.log("[Engine] Ready to stream.");
+    } catch (e) {
+        console.error("[Engine] Failed to initialize:", e);
     }
+})();
+
+// -----------------------------
+//  API ROUTES
+// -----------------------------
+
+// 1. Search Route
+fastify.get("/music/search", async (req, reply) => {
+  const q = req.query.q;
+  if (!q) return reply.status(400).send({ error: "Query required" });
+  
+  console.log(`[Music] Searching: ${q}`);
+  try {
+    const result = await ytSearch(q);
+    if (result && result.videos.length > 0) {
+      const video = result.videos[0];
+      console.log(`[Music] Found: ${video.title} (${video.videoId})`);
+      return reply.send({ videoId: video.videoId });
+    }
+    return reply.status(404).send({ error: "No results found" });
+  } catch (e) {
+    console.error("[Music] Search Error:", e);
+    return reply.status(500).send({ error: "Search failed internally" });
+  }
+});
+
+// 2. Stream Route (Powered by yt-dlp-wrap)
+fastify.get("/music/stream", async (req, reply) => {
+  const { id } = req.query;
+  if (!id) return reply.status(400).send({ error: "ID required" });
+
+  if (!ytDlpWrap) {
+      return reply.status(503).send({ error: "Engine not ready yet" });
+  }
+
+  const videoUrl = `https://www.youtube.com/watch?v=${id}`;
+  console.log(`[Music] Stream Request for: ${id}`);
+
+  try {
+    reply.header('Content-Type', 'audio/mpeg');
+
+    // Create a stream directly from the binary execution
+    const readableStream = ytDlpWrap.execStream([
+        videoUrl,
+        '-f', 'bestaudio', 
+        '-o', '-' 
+    ]);
+
+    // Pipe the stream to the response
+    return reply.send(readableStream);
+
+  } catch (e) {
+    console.error("[Music] Stream Error:", e.message);
+    return reply.status(500).send({ error: "Stream failed" });
+  }
+});
+
+// 3. Cover Art Proxy
+fastify.get("/music/cover", async (req, reply) => {
+  const { url } = req.query;
+  if(!url) return reply.status(400).send("Missing url");
+  try {
+      const resp = await fetch(url);
+      const buffer = await resp.arrayBuffer();
+      reply.header("Content-Type", resp.headers.get("content-type"));
+      reply.header("Cache-Control", "public, max-age=86400");
+      return reply.send(Buffer.from(buffer));
+  } catch (e) {
+      return reply.status(500).send("Image Fetch Error");
+  }
+});
+
+// 404 Handler (SPA Support)
+fastify.setNotFoundHandler((request, reply) => {
+  const url = request.raw.url || "";
+  
+  // If it's an API call that failed, return JSON error
+  if (url.startsWith("/music/search") || url.startsWith("/music/stream") || url.startsWith("/music/cover")) {
+      return reply.code(404).send({ error: "API Endpoint Not Found" });
   }
   
-  // If the request IS for /profiles, delegate to the plugin's notFoundHandler.
-  return reply.callNotFound(); 
+  // If user is trying to access a page under /music/ (like /music/settings), serve index.html
+  if (url.startsWith("/music") && !url.includes(".")) {
+    return reply.sendFile("index.html");
+  }
+  
+  reply.code(404).send("Not Found");
 });
 
-
-// log server addresses
-fastify.server.on("listening", () => {
-  const address = fastify.server.address();
-  console.log("Listening on:");
-  console.log(`\thttp://localhost:${address.port}`);
-  console.log(`\thttp://${hostname()}:${address.port}`);
-  console.log(
-    `\thttp://${address.family === "IPv6" ? `[${address.address}]` : address.address}:${address.port}`
-  );
-});
-
-// graceful shutdown
-process.on("SIGINT", shutdown);
-process.on("SIGTERM", shutdown);
-
-function shutdown() {
-  console.log("SIGTERM signal received: closing HTTP server");
-  fastify.close();
-  process.exit(0);
-}
-
-let port = parseInt(process.env.PORT || "");
-if (isNaN(port)) port = 1100;
-
-fastify.listen({
-  port: port,
-  host: "0.0.0.0",
+const port = Number(process.env.PORT || "1100") || 1100;
+fastify.listen({ port, host: "0.0.0.0" }).then(() => {
+  console.log(`Music Server running on http://localhost:${port}/music/`);
 });
