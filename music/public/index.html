@@ -43,8 +43,6 @@
   .progress-container{margin-bottom:20px}
   .time-info{display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px;color:#999}
   
-  /* Removed handle/knob styles */
-
   .volume-control{display:flex;align-items:center;gap:12px;margin-bottom:24px}
   .volume-control i{color:#8a5cf6;font-size:18px}
   .volume-slider{flex:1;height:6px;background:rgba(255,255,255,.1);border-radius:3px;cursor:pointer;position:relative}
@@ -93,7 +91,7 @@
   .lyrics-container::-webkit-scrollbar-thumb { background: #8a5cf6; border-radius: 10px; }
   .lyric-line {
     padding: 12px 10px; color: #666; font-size: 16px; transition: all 0.3s ease;
-    cursor: default; /* Removed pointer */
+    cursor: default;
     border-radius: 8px; margin-bottom: 4px;
     user-select: none;
   }
@@ -129,7 +127,6 @@
       <button class="nav-btn" onclick="showTab('search')"><i class="fas fa-search"></i> Search</button>
     </div>
 
-    <!-- PLAYER TAB -->
     <div class="tab-content active" id="playerTab">
       <div class="album-art" id="albumArtContainer">
         <i class="fas fa-music"></i>
@@ -149,11 +146,14 @@
       </div>
 
       <div class="progress-container">
-        <!-- Progress bar is now non-interactive -->
-        <div class="progress-bar" id="progressBar">
-          <div class="progress" id="progress"></div>
+        <div class="progress-bar" id="progressBar" style="height:6px; background:rgba(255,255,255,0.1); border-radius:3px; overflow:hidden;">
+          <div class="progress" id="progress" style="width:0%; height:100%; background:#8a5cf6;"></div>
         </div>
         <div class="buffering-bar" id="bufferingBar"></div>
+        <div class="time-info">
+            <span id="currentTime">0:00</span>
+            <span id="duration">0:00</span>
+        </div>
       </div>
 
       <div class="volume-control">
@@ -164,14 +164,12 @@
       </div>
     </div>
 
-    <!-- LYRICS TAB -->
     <div class="tab-content" id="lyricsTab">
       <div class="lyrics-container" id="lyricsContainer">
         <p class="loading">Lyrics will appear here...</p>
       </div>
     </div>
 
-    <!-- SEARCH TAB -->
     <div class="tab-content" id="searchTab">
       <div class="search-box">
         <input type="text" id="searchInput" placeholder="Search songs..." onkeypress="if(event.key==='Enter') searchSongs()">
@@ -180,7 +178,6 @@
       <div class="results" id="searchResults"></div>
     </div>
 
-    <!-- FAVORITES TAB -->
     <div class="tab-content" id="favoritesTab">
       <div class="results" id="favoritesResults"></div>
     </div>
@@ -194,7 +191,6 @@
 <script>
 const audio = document.getElementById('audioPlayer');
 const bufferingBar = document.getElementById('bufferingBar');
-const progressBar = document.getElementById('progressBar');
 const progressFill = document.getElementById('progress');
 
 // State Variables
@@ -204,10 +200,24 @@ let lyrics = [];
 let lyricsInterval;
 let userScrolling = false;
 let scrollTimeout;
-
-// Queue Management
 let queue = [];
 let queueIndex = -1;
+
+// --- BROADCAST TO PARENT ---
+function broadcastState() {
+    const msg = {
+        type: 'musicUpdate',
+        title: currentSong ? currentSong.trackName : 'No Song',
+        artist: currentSong ? currentSong.artistName : '',
+        artwork: currentSong ? getProxiedImg(currentSong.artworkUrl60) : '',
+        isPlaying: !audio.paused,
+        currentTime: audio.currentTime,
+        duration: audio.duration,
+        hasSong: !!currentSong
+    };
+    // Send to parent window
+    window.parent.postMessage(msg, '*');
+}
 
 // --- Audio Event Listeners ---
 audio.addEventListener('timeupdate', () => {
@@ -218,9 +228,11 @@ audio.addEventListener('timeupdate', () => {
     document.getElementById('currentTime').textContent = formatTime(curr);
     document.getElementById('duration').textContent = formatTime(dur);
   }
+  broadcastState(); // Broadcast progress
 });
 
 audio.addEventListener('ended', () => {
+  broadcastState();
   if (queueIndex < queue.length - 1) {
     playNext();
   } else {
@@ -233,26 +245,40 @@ audio.addEventListener('play', () => {
   document.getElementById('playBtn').innerHTML = '<i class="fas fa-pause"></i>';
   bufferingBar.style.display = 'none';
   startLyricsSync();
+  broadcastState();
 });
 
 audio.addEventListener('pause', () => {
   document.getElementById('playBtn').innerHTML = '<i class="fas fa-play"></i>';
   bufferingBar.style.display = 'none';
+  broadcastState();
 });
 
 audio.addEventListener('waiting', () => {
-    document.getElementById('statusText').textContent = "Loading Song... (Can take up to 20 seconds)";
+    document.getElementById('statusText').textContent = "Loading Song...";
     bufferingBar.style.display = 'block';
 });
 
 audio.addEventListener('playing', () => {
     document.getElementById('statusText').textContent = "";
     bufferingBar.style.display = 'none';
+    broadcastState();
+});
+
+// --- Listen for Remote Control ---
+window.addEventListener('message', (e) => {
+    if (e.data.type === 'musicControl') {
+        const action = e.data.action;
+        if (action === 'toggle') togglePlay();
+        if (action === 'next') playNext();
+        if (action === 'prev') playPrev();
+    }
 });
 
 // --- Core Functions ---
 
 function getProxiedImg(url) {
+  // Use relative path so it works on mobile proxy
   return '/music/cover?url=' + encodeURIComponent(url);
 }
 
@@ -298,8 +324,14 @@ function formatTime(s) {
 function showTab(tab){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.bottom-tab-btn').forEach(b=>b.classList.remove('active'));
-  if(tab==='favorites') document.querySelectorAll('.bottom-tab-btn').forEach(b=>b.classList.add('active'));
-  else document.querySelectorAll('.nav-btn').forEach(b=>{if(b.textContent.toLowerCase().includes(tab)) b.classList.add('active');});
+  
+  if(tab==='favorites') {
+      document.querySelectorAll('.bottom-tab-btn').forEach(b=>b.classList.add('active'));
+  } else {
+      document.querySelectorAll('.nav-btn').forEach(b=>{
+          if(b.textContent.toLowerCase().includes(tab)) b.classList.add('active');
+      });
+  }
   
   document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
   document.getElementById(tab+'Tab').classList.add('active');
@@ -314,17 +346,30 @@ async function searchSongs() {
   if(!q) return;
   const container = document.getElementById('searchResults');
   container.innerHTML = '<p class="loading">Searching vøid.music...</p>';
+  
   try {
-    const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&entity=song&limit=20`);
+    // Use local proxy instead of direct iTunes call
+    const res = await fetch(`/music/meta?q=${encodeURIComponent(q)}`);
+    
+    if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || res.statusText);
+    }
+    
     const data = await res.json();
     displayResults(data.results, container, 'search');
   } catch(e) {
-    container.innerHTML = '<p class="loading">Error searching.</p>';
+    console.error(e);
+    container.innerHTML = `<p class="loading" style="color:#ff4757">Error: ${e.message}</p>`;
   }
 }
 
 function displayResults(songs, container, source){
   container.innerHTML='';
+  if(!songs || songs.length === 0) {
+      container.innerHTML = '<p class="loading">No results found.</p>';
+      return;
+  }
   songs.forEach((song) => {
     const div=document.createElement('div');
     div.className='song-item';
@@ -362,9 +407,13 @@ async function playSong(song){
 
   audio.pause();
   audio.src = "";
+  broadcastState(); // Broadcast new song loading state
 
   try {
     const searchRes = await fetch(`/music/search?q=${encodeURIComponent(song.trackName + ' ' + song.artistName + ' audio')}`);
+    
+    if(!searchRes.ok) throw new Error("Search API error");
+    
     const searchData = await searchRes.json();
     
     if(searchData.videoId) {
@@ -373,17 +422,21 @@ async function playSong(song){
       audio.load();
       audio.play().catch(e => {
           document.getElementById('playBtn').innerHTML = '<i class="fas fa-play"></i>';
-          document.getElementById('statusText').textContent = "Play";
+          document.getElementById('statusText').textContent = "Tap to Play";
+          broadcastState();
       });
     } else {
       document.getElementById('statusText').textContent = "Source not found.";
       document.getElementById('playBtn').innerHTML = '<i class="fas fa-play"></i>';
       bufferingBar.style.display = 'none';
+      broadcastState();
     }
   } catch(e) {
     document.getElementById('statusText').textContent = "Connection failed.";
     document.getElementById('playBtn').innerHTML = '<i class="fas fa-play"></i>';
     bufferingBar.style.display = 'none';
+    console.error(e);
+    broadcastState();
   }
 }
 
@@ -407,7 +460,7 @@ async function loadLyrics(track, artist, duration) {
            }
         }
 
-        if (res.ok) {
+        if (res.ok || res.json) {
             const data = await res.json();
             if (data.syncedLyrics) {
                 parseSyncedLyrics(data.syncedLyrics);
@@ -437,7 +490,6 @@ function parseSyncedLyrics(raw) {
 
 function renderLyrics() {
     const container = document.getElementById('lyricsContainer');
-    // REMOVED onclick event for lyrics
     container.innerHTML = lyrics.map((l, i) => 
         `<div class="lyric-line">${l.text}</div>`
     ).join('');

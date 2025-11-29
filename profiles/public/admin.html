@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>void.admin</title>
+    <style>
+        body {
+            background-color: #05050a;
+            color: #e2e8f0;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .panel {
+            background: #0f0f12;
+            border: 1px solid #333;
+            padding: 40px;
+            border-radius: 12px;
+            width: 400px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+        h2 { color: #ef4444; margin-top: 0; text-transform: uppercase; letter-spacing: 2px; border-bottom: 1px solid #333; padding-bottom: 15px; }
+        .field { margin-bottom: 15px; }
+        label { display: block; font-size: 12px; color: #666; margin-bottom: 5px; }
+        input {
+            width: 100%;
+            padding: 12px;
+            background: #0a0a0f;
+            border: 1px solid #333;
+            color: #fff;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        input:focus { border-color: #ef4444; outline: none; }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #ef4444;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: background 0.2s;
+        }
+        button:hover { background: #dc2626; }
+        #status { margin-top: 20px; font-size: 12px; min-height: 1.2em; }
+        .success { color: #22c55e; }
+        .error { color: #ef4444; }
+    </style>
+</head>
+<body>
+    <div class="panel">
+        <h2>Admin Console</h2>
+        <div class="field">
+            <label>AUTHORIZATION</label>
+            <input type="password" id="admin-pass" placeholder="Admin Password">
+        </div>
+        <div class="field">
+            <label>BROADCAST MESSAGE</label>
+            <input type="text" id="broadcast-msg" placeholder="Type system alert...">
+        </div>
+        <button id="send-btn">Send Broadcast</button>
+        <div id="status">Connecting to system...</div>
+    </div>
+
+    <script src="/profiles/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io({ path: "/profiles/socket.io/" });
+        const statusEl = document.getElementById('status');
+
+        socket.on('connect', () => {
+            statusEl.textContent = "System Connected.";
+            statusEl.className = "success";
+        });
+
+        socket.on('disconnect', () => {
+            statusEl.textContent = "Disconnected.";
+            statusEl.className = "error";
+        });
+
+        socket.on('system', (data) => {
+            statusEl.textContent = data.msg;
+            statusEl.className = data.msg.toLowerCase().includes("success") ? "success" : "error";
+        });
+
+        document.getElementById('send-btn').addEventListener('click', () => {
+            const password = document.getElementById('admin-pass').value;
+            const message = document.getElementById('broadcast-msg').value;
+
+            if (!password || !message) {
+                statusEl.textContent = "All fields required.";
+                statusEl.className = "error";
+                return;
+            }
+
+            socket.emit('adminBroadcast', { password, message });
+        });
+    </script>
+</body>
+</html>

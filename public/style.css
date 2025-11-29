@@ -1,0 +1,354 @@
+/* Basic Setup */
+:root {
+	/* Define theme colors here. This is for the default Dark Theme. */
+	--bg-color: #1a1a1a;
+	--primary-color: #2a2a2a;
+	--secondary-color: #333;
+	--text-color: #f0f0f0;
+	--accent-color: #00aaff;
+}
+
+/* --- Define Your Themes --- */
+.theme-light {
+	--bg-color: #f0f0f0;
+	--primary-color: #ffffff;
+	--secondary-color: #e0e0e0;
+	--text-color: #1a1a1a;
+	--accent-color: #0077cc;
+}
+
+.theme-cyberpunk {
+	/* TODO: Add your colors */
+	--bg-color: #0d0221;
+	--text-color: #00f0ff;
+	--accent-color: #f000ff;
+}
+.theme-matrix {
+	/* TODO: Add your colors */
+	--bg-color: #000000;
+	--text-color: #00ff00;
+	--accent-color: #00ff00;
+}
+.theme-labubu {
+	/* TODO: Add your colors */
+	--bg-color: #f5f5f5;
+	--text-color: #333;
+	--accent-color: #ff6b6b;
+}
+/* --- End Themes --- */
+
+body {
+	background-image: url('Wallpapers/6.png'); /* Default wallpaper */
+	background-size: cover;
+	background-position: center;
+	background-attachment: fixed;
+	background-color: var(--bg-color); /* Fallback */
+	color: var(--text-color);
+	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
+		Arial, sans-serif;
+	margin: 0;
+	padding: 0;
+	height: 100vh;
+	width: 100vw;
+	overflow: hidden;
+}
+
+.hidden {
+	display: none !important;
+}
+
+/* --- Launcher Page --- */
+#launcher-page {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	height: 100%;
+	backdrop-filter: blur(10px) brightness(0.7);
+}
+
+.main-nav {
+	position: absolute;
+	top: 20px;
+	display: flex;
+	gap: 15px;
+}
+
+.main-nav button {
+	background: var(--primary-color);
+	color: var(--text-color);
+	border: 1px solid var(--secondary-color);
+	padding: 10px 20px;
+	border-radius: 8px;
+	cursor: pointer;
+	font-size: 16px;
+	transition: background 0.2s;
+}
+
+.main-nav button:hover {
+	background: var(--secondary-color);
+}
+
+#settings-btn {
+	position: absolute;
+	top: 20px;
+	right: 20px;
+	font-size: 24px;
+	background: none;
+	border: none;
+	color: var(--text-color);
+	cursor: pointer;
+}
+
+.main-content {
+	text-align: center;
+}
+
+.logo-wrapper h1 {
+	font-size: 4rem;
+	color: white;
+	text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+#proxy-form {
+	display: flex;
+	width: 100%;
+	max-width: 600px;
+}
+
+#proxy-address {
+	width: 100%;
+	padding: 15px;
+	font-size: 18px;
+	border: none;
+	border-radius: 10px;
+	background: rgba(255, 255, 255, 0.9);
+	color: #333;
+}
+
+/* --- Settings Modal --- */
+.modal {
+	position: fixed;
+	z-index: 100;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	background-color: rgba(0, 0, 0, 0.6);
+	backdrop-filter: blur(5px);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.modal-content {
+	background-color: var(--primary-color);
+	padding: 30px;
+	border-radius: 10px;
+	width: 90%;
+	max-width: 500px;
+	display: flex;
+	flex-direction: column;
+	gap: 15px;
+}
+
+.modal-content label,
+.modal-content select,
+.modal-content input {
+	display: block;
+	width: 100%;
+	box-sizing: border-box; /* Ensures padding doesn't affect width */
+}
+
+.modal-content input[type='text'],
+.modal-content input[type='url'],
+.modal-content select {
+	padding: 8px;
+	border-radius: 5px;
+	border: 1px solid var(--secondary-color);
+	background: var(--bg-color);
+	color: var(--text-color);
+}
+
+.modal-content label {
+	margin-top: 10px;
+}
+
+.modal-content label[for*='toggle'] {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-top: 0;
+}
+
+.close-btn {
+	color: var(--text-color);
+	float: right;
+	font-size: 28px;
+	font-weight: bold;
+	cursor: pointer;
+	align-self: flex-end;
+}
+
+#save-settings-btn {
+	background: var(--accent-color);
+	color: white;
+	padding: 12px;
+	border: none;
+	border-radius: 5px;
+	cursor: pointer;
+	font-size: 16px;
+	margin-top: 10px;
+}
+
+/* --- Browser Interface --- */
+#browser-container {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: var(--bg-color);
+	display: flex;
+	z-index: 50;
+}
+
+.tab-sidebar {
+	width: 250px;
+	background: var(--primary-color);
+	border-right: 1px solid var(--secondary-color);
+	display: flex;
+	flex-direction: column;
+	padding: 10px;
+}
+
+.tab-header {
+	display: flex;
+	justify-content: space-between;
+	padding-bottom: 10px;
+}
+
+.tab-header button {
+	background: none;
+	border: 1px solid var(--secondary-color);
+	color: var(--text-color);
+	border-radius: 5px;
+	cursor: pointer;
+	font-size: 16px;
+	width: 40px;
+	height: 30px;
+}
+
+#tab-list {
+	flex-grow: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+}
+
+.tab-item {
+	background: var(--secondary-color);
+	color: var(--text-color);
+	padding: 10px;
+	border-radius: 5px;
+	cursor: pointer;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.tab-item.active {
+	background: var(--accent-color);
+	color: white;
+}
+
+.tab-close-btn {
+	background: none;
+	border: none;
+	color: var(--text-color);
+	font-size: 16px;
+	cursor: pointer;
+}
+
+.tab-item.active .tab-close-btn {
+	color: white;
+}
+
+#bookmark-list {
+	/* TODO: Style bookmarks */
+}
+
+.content-area {
+	flex-grow: 1;
+	display: flex;
+	flex-direction: column;
+}
+
+.browser-controls {
+	display: flex;
+	padding: 10px;
+	background: var(--primary-color);
+	border-bottom: 1px solid var(--secondary-color);
+}
+
+#browser-url-bar {
+	flex-grow: 1;
+	padding: 8px;
+	border-radius: 5px;
+	border: 1px solid var(--secondary-color);
+	background: var(--bg-color);
+	color: var(--text-color);
+}
+
+#bookmark-btn {
+	background: none;
+	border: none;
+	font-size: 20px;
+	color: var(--text-color);
+	cursor: pointer;
+	margin-right: 10px;
+}
+
+#iframe-container {
+	flex-grow: 1;
+	position: relative; /* For iframes */
+}
+
+#iframe-container iframe {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	border: none;
+}
+
+/* --- Feature Overlays --- */
+#teachgone-video {
+	position: fixed;
+	top: 10px;
+	left: 10px;
+	width: 200px;
+	height: 150px;
+	border: 2px solid var(--accent-color);
+	border-radius: 8px;
+	z-index: 200;
+}
+
+#stealth-overlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background-size: cover;
+	background-position: center;
+	z-index: 9999;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.3s ease-in-out;
+}
+
+#stealth-overlay.visible {
+	opacity: 1;
+}
