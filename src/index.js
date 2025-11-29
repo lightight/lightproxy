@@ -214,7 +214,7 @@ fastify.setNotFoundHandler((request, reply) => {
   reply.code(404).sendFile("404.html", publicPath);
 });
 
-const port = Number(process.env.PORT || "8080") || 8080;
+const port = Number(process.env.PORT || "1100") || 1100;
 fastify.listen({ port, host: "0.0.0.0" }).then(() => {
   console.log(`Server running on http://localhost:${port}`);
   console.log(`- Main App:  http://localhost:${port}/`);

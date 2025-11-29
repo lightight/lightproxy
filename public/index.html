@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>classroom</title> <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>classroom</title> 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <script src="/profiles/socket.io/socket.io.js"></script>
     <script src="/baremux/index.js" defer></script>
@@ -14,63 +15,61 @@
 
 <style>
     /* --- CORE VARIABLES --- */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Press+Start+2P&display=swap');
 
     :root {
-        /* Base Colors */
+        /* Default (Void Dark) */
         --bg-dark: #05050a;
         --nav-bg: #0a0a0f;
         --text-primary: #ffffff;
         --text-secondary: #94a3b8;
         --text-tertiary: #64748b;
+        --accent-primary: #0ea5e9; 
         
-        /* LightLink Rebrand Accents - Electric Blue/Cyan */
-        --accent-primary: #0ea5e9; /* LightLink Blue */
-        --accent-glow: rgba(14, 165, 233, 0.5);
-        --accent-gradient: linear-gradient(135deg, #0ea5e9, #38bdf8);
-        
+        /* Customizable Metrics */
+        --radius-sm: 6px;
+        --radius-md: 12px;
+        --radius-lg: 20px;
+        --glass-opacity: 0.03; 
+        --nav-opacity: 1;      
+        --ui-font: 'Inter', sans-serif;
+
         /* UI Metrics */
         --bar-height: 50px;
         --tab-bar-height: 40px;
-        
-        /* Wallpaper Variable */
         --wallpaper: url('Wallpapers/5.png');
     }
 
-    /* --- THEMES --- */
-    .theme-starlight {
+    /* --- THEME OVERRIDES --- */
+    /* These classes must be on BODY */
+    body.theme-starlight {
         --bg-dark: #ffffff;
         --nav-bg: #f3f4f6;
         --text-primary: #1e293b;
         --text-secondary: #475569;
+        --text-tertiary: #94a3b8;
         --accent-primary: #0284c7;
     }
-    .theme-cyberpunk {
-        --bg-dark: #05000a;
-        --nav-bg: #1a0b2e;
-        --accent-primary: #d946ef;
-        --accent-gradient: linear-gradient(135deg, #d946ef, #f43f5e);
-    }
-    .theme-thanksgiving {
+    body.theme-thanksgiving {
         --bg-dark: #2b1d0e;
         --nav-bg: #4a3728;
         --text-primary: #fff8e1;
         --text-secondary: #d4c4a8;
         --accent-primary: #d97706;
-        --accent-gradient: linear-gradient(135deg, #d97706, #b45309);
     }
-    .theme-christmas {
+    body.theme-christmas {
         --bg-dark: #0f2e18;
         --nav-bg: #143d20;
         --text-primary: #ffffff;
         --text-secondary: #a7f3d0;
         --accent-primary: #ef4444;
-        --accent-gradient: linear-gradient(135deg, #ef4444, #22c55e);
     }
-    .theme-67 {
-        --bg-dark: #111;
-        --nav-bg: #000;
-        --accent-primary: #fff;
+    body.theme-67 {
+        --bg-dark: #111111;
+        --nav-bg: #000000;
+        --text-primary: #ffffff;
+        --text-secondary: #888888;
+        --accent-primary: #ffffff;
     }
 
     /* --- RESET & BASE --- */
@@ -79,7 +78,7 @@
     body {
         background-color: var(--bg-dark);
         color: var(--text-primary);
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-family: var(--ui-font);
         height: 100vh;
         width: 100vw;
         overflow: hidden;
@@ -87,151 +86,144 @@
         flex-direction: column;
         transition: background-color 0.3s, color 0.3s;
     }
+    
+    /* --- CURSOR LOGIC --- */
+    button, a, .app-icon, .tab-item, .wp-thumb, .btn, input, select { cursor: pointer; }
+    
+    /* 1. Crosshair Mode */
+    body[data-cursor="crosshair"],
+    body[data-cursor="crosshair"] * {
+        cursor: crosshair !important;
+    }
+
+    /* 2. iPad Mode */
+    body[data-cursor="ipad"],
+    body[data-cursor="ipad"] * {
+        cursor: none !important;
+    }
+    
+    /* iPad Mode: Fix tab hover box */
+    body[data-cursor="ipad"] .tab-item:hover,
+    body[data-cursor="ipad"] .app-icon:hover,
+    body[data-cursor="ipad"] .btn:hover {
+        background: transparent !important;
+        box-shadow: none !important;
+    }
+
+    /* 3. iPad Mode Hand-off (Hide Fake Mouse when hovering iframe) */
+    body.hide-fake-cursor .cursor-wrapper {
+        opacity: 0 !important;
+        transition: opacity 0.1s ease-out;
+    }
+
+    .cursor-wrapper { pointer-events: none; z-index: 999999; mix-blend-mode: difference; transition: opacity 0.2s; }
+
+    /* Bottom Nav Modifier */
+    body.layout-bottom { flex-direction: column-reverse; }
+    body.layout-bottom #app-bar { border-bottom: none; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+    body.layout-bottom #dynamic-island { bottom: 70px; top: auto; transform: scale(0.9) translateY(20px); }
+    body.layout-bottom #dynamic-island.active { transform: scale(1) translateY(0); }
+    body.layout-bottom #browser-tab-bar { border-bottom: none; border-top: 1px solid rgba(255,255,255,0.05); }
 
     /* --- SPECIAL EFFECTS OVERLAYS --- */
-    #effects-overlay {
-        position: fixed; inset: 0; pointer-events: none; z-index: 9997; overflow: hidden;
-    }
+    #effects-overlay { position: fixed; inset: 0; pointer-events: none; z-index: 9997; overflow: hidden; }
     .falling-item { position: absolute; top: -50px; animation: fall linear forwards; }
     @keyframes fall { to { transform: translateY(110vh) rotate(360deg); } }
-    .xmas-lights-strand {
-        position: absolute; top: -10px; left: 0; width: 100%; height: 40px; display: flex; justify-content: space-around; z-index: 9998; pointer-events: none;
-    }
-    .xmas-bulb {
-        width: 12px; height: 12px; border-radius: 50%; background: #fff; animation: flash 2s infinite alternate; box-shadow: 0 5px 10px rgba(255,255,255,0.5);
-    }
-    .xmas-bulb:nth-child(odd) { background: #ef4444; animation-delay: 0.5s; box-shadow: 0 5px 10px rgba(239,68,68,0.5); }
-    .xmas-bulb:nth-child(even) { background: #22c55e; animation-delay: 1s; box-shadow: 0 5px 10px rgba(34,197,94,0.5); }
+    .xmas-lights-strand { position: absolute; top: -10px; left: 0; width: 100%; height: 40px; display: flex; justify-content: space-around; z-index: 9998; pointer-events: none; }
+    .xmas-bulb { width: 12px; height: 12px; border-radius: 50%; background: #fff; animation: flash 2s infinite alternate; box-shadow: 0 5px 10px rgba(255,255,255,0.5); }
+    .xmas-bulb:nth-child(odd) { background: #ef4444; animation-delay: 0.5s; }
+    .xmas-bulb:nth-child(even) { background: #22c55e; animation-delay: 1s; }
     @keyframes flash { 0% { opacity: 0.4; } 100% { opacity: 1; } }
 
     #cloak-overlay { position: fixed; inset: 0; z-index: 9000; background-size: cover; background-position: center; background-color: #000; }
-    #void-cloak-overlay {
-        position: fixed; inset: 0; z-index: 9998; background-color: #000; background-size: cover;
-        background-position: center; background-repeat: no-repeat; display: none; pointer-events: none;
-    }
-    #click-to-enter {
-        position: fixed; inset: 0; z-index: 9999; background: #000 url('Wallpapers/5.png') center/cover no-repeat;
-        display: flex; align-items: center; justify-content: center; flex-direction: column; cursor: pointer;
-    }
+    #void-cloak-overlay { position: fixed; inset: 0; z-index: 9998; background-color: #000; background-size: cover; background-position: center; background-repeat: no-repeat; display: none; pointer-events: none; }
+    #click-to-enter { position: fixed; inset: 0; z-index: 9999; background: #000 url('Wallpapers/5.png') center/cover no-repeat; display: flex; align-items: center; justify-content: center; flex-direction: column; cursor: pointer; }
     #click-to-enter::before { content: ''; position: absolute; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(10px); }
-    .enter-text {
-        position: relative; z-index: 10; font-size: 24px; font-weight: 300; letter-spacing: 2px;
-        color: rgba(255,255,255,0.8); animation: pulse 2s infinite;
-    }
+    .enter-text { position: relative; z-index: 10; font-size: 24px; font-weight: 300; letter-spacing: 2px; color: rgba(255,255,255,0.8); animation: pulse 2s infinite; }
     @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
 
+    /* Scrollbars */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.2); border-radius: 10px; }
     ::-webkit-scrollbar-thumb:hover { background: rgba(128,128,128,0.4); }
 
-    /* --- TOP NAVIGATION BAR --- */
-    #app-bar {
-        height: var(--bar-height); background: var(--nav-bg); border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-        display: flex; align-items: center; justify-content: space-between; padding: 0 16px; z-index: 1000; flex-shrink: 0; transition: background 0.3s;
-    }
+    /* --- APP BAR --- */
+    #app-bar { height: var(--bar-height); background: var(--nav-bg); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255, 255, 255, 0.08); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; z-index: 1000; flex-shrink: 0; transition: background 0.3s; }
     #app-bar-apps { display: flex; gap: 8px; align-items: center; }
-    .app-icon {
-        width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center;
-        color: var(--text-secondary); font-size: 14px; cursor: pointer; transition: all 0.2s ease; position: relative;
-    }
+    .app-icon { width: 32px; height: 32px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; color: var(--text-secondary); font-size: 14px; transition: all 0.2s ease; position: relative; z-index: 2000; }
     .app-icon:hover { background: rgba(255,255,255,0.1); color: var(--accent-primary); }
-    
-    /* --- NOTIFICATION DOT --- */
-    .app-icon.has-notification::after {
-        content: ''; position: absolute; top: -2px; right: -2px;
-        width: 10px; height: 10px; background: var(--accent-primary); border-radius: 50%;
-        border: 2px solid var(--nav-bg); box-shadow: 0 0 5px var(--accent-primary);
-    }
-
+    .app-icon.has-notification::after { content: ''; position: absolute; top: -2px; right: -2px; width: 10px; height: 10px; background: var(--accent-primary); border-radius: 50%; border: 2px solid var(--nav-bg); box-shadow: 0 0 5px var(--accent-primary); }
     .divider { width: 1px; height: 20px; background: rgba(255,255,255,0.1); margin: 0 8px; }
     #app-bar-system { display: flex; gap: 16px; align-items: center; font-size: 12px; color: var(--text-secondary); font-weight: 500; }
-    .hover-effect { cursor: pointer; transition: color 0.2s; }
+    .hover-effect { transition: color 0.2s; }
     .hover-effect:hover { color: var(--text-primary); }
 
-    /* --- TOAST NOTIFICATION POPUP --- */
-    #void-toast {
-        position: fixed; bottom: 20px; right: 20px;
-        background: rgba(20, 20, 25, 0.9);
-        border: 1px solid var(--accent-primary);
-        border-radius: 12px; padding: 16px;
-        color: #fff; z-index: 10000;
-        display: flex; align-items: center; gap: 12px;
-        transform: translateY(100px); opacity: 0;
-        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        pointer-events: none; max-width: 300px;
-    }
+    /* --- TOAST --- */
+    #void-toast { position: fixed; bottom: 20px; right: 20px; background: rgba(20, 20, 25, 0.9); border: 1px solid var(--accent-primary); border-radius: var(--radius-md); padding: 16px; color: #fff; z-index: 10000; display: flex; align-items: center; gap: 12px; transform: translateY(100px); opacity: 0; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 10px 30px rgba(0,0,0,0.5); pointer-events: none; max-width: 300px; }
     #void-toast.visible { transform: translateY(0); opacity: 1; pointer-events: all; }
     .toast-icon { font-size: 20px; color: var(--accent-primary); }
     .toast-content h4 { font-size: 14px; margin-bottom: 4px; color: var(--accent-primary); font-weight: 700; }
     .toast-content p { font-size: 13px; color: #ccc; margin: 0; line-height: 1.4; }
 
-    /* --- BROWSER AREA --- */
+    /* --- BROWSER --- */
     #browser-container { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--bg-dark); transition: background 0.3s; }
-    #browser-tab-bar {
-        height: var(--tab-bar-height); background: var(--nav-bg); display: flex; align-items: center;
-        padding: 0 8px; gap: 4px; overflow-x: auto; border-bottom: 1px solid rgba(255, 255, 255, 0.05); flex-shrink: 0; transition: background 0.3s;
-    }
-    .tab-item {
-        max-width: 220px; min-width: 140px; height: 32px; background: transparent; border-radius: 6px 6px 0 0;
-        display: flex; align-items: center; justify-content: space-between; padding: 0 10px; font-size: 12px; color: var(--text-secondary);
-        cursor: pointer; border-bottom: 2px solid transparent; transition: background 0.2s; position: relative;
-    }
+    #browser-tab-bar { height: var(--tab-bar-height); background: var(--nav-bg); display: flex; align-items: center; padding: 0 8px; gap: 4px; overflow-x: auto; border-bottom: 1px solid rgba(255, 255, 255, 0.05); flex-shrink: 0; transition: background 0.3s; z-index: 2000; }
+    .tab-item { max-width: 220px; min-width: 140px; height: 32px; background: transparent; border-radius: var(--radius-sm) var(--radius-sm) 0 0; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; font-size: 12px; color: var(--text-secondary); border-bottom: 2px solid transparent; transition: background 0.2s; position: relative; cursor: pointer; }
     .tab-item:hover { background: rgba(255,255,255,0.03); }
     .tab-item.active { background: rgba(255,255,255,0.06); color: var(--text-primary); border-bottom: 2px solid var(--accent-primary); }
     .tab-close { font-size: 10px; padding: 4px; border-radius: 50%; opacity: 0; transition: 0.2s; }
     .tab-item:hover .tab-close, .tab-item.active .tab-close { opacity: 0.6; }
     .tab-close:hover { background: rgba(239, 68, 68, 0.2); color: #ef4444; opacity: 1 !important; }
-    #new-tab-button { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 4px; color: var(--text-secondary); cursor: pointer; }
+    #new-tab-button { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 4px; color: var(--text-secondary); z-index: 2000; }
     #new-tab-button:hover { background: rgba(255,255,255,0.05); color: var(--accent-primary); }
     #browser-content-area { flex: 1; position: relative; background: var(--bg-dark); }
     .tab-content { width: 100%; height: 100%; display: none; }
     .tab-content.active { display: block; }
     iframe { width: 100%; height: 100%; border: none; display: block; background: #fff; }
 
-    /* --- NEW TAB PAGE --- */
-    .new-tab-body {
-        height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;
-        background-image: var(--wallpaper); background-size: cover; background-position: center; position: relative;
-    }
+    /* --- NEW TAB --- */
+    .new-tab-body { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background-image: var(--wallpaper); background-size: cover; background-position: center; position: relative; }
     .new-tab-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(5px); z-index: 0; }
     .nt-content { position: relative; z-index: 1; width: 100%; max-width: 600px; text-align: center; }
     .nt-logo { font-size: 64px; font-weight: 800; color: #fff; margin-bottom: 30px; letter-spacing: -2px; text-shadow: 0 4px 20px rgba(0,0,0,0.5); }
     .nt-input-wrapper { position: relative; width: 100%; }
-    .nt-input {
-        width: 100%; height: 56px; background: rgba(20, 20, 25, 0.6); border: 1px solid rgba(255,255,255,0.2);
-        border-radius: 12px; padding: 0 20px 0 50px; font-size: 16px; color: #fff; backdrop-filter: blur(20px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); transition: all 0.2s;
-    }
+    .nt-input { width: 100%; height: 56px; background: rgba(20, 20, 25, 0.6); border: 1px solid rgba(255,255,255,0.2); border-radius: var(--radius-md); padding: 0 20px 0 50px; font-size: 16px; color: #fff; backdrop-filter: blur(20px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); transition: all 0.2s; font-family: var(--ui-font); }
     .nt-input:focus { background: rgba(20, 20, 25, 0.9); border-color: var(--accent-primary); box-shadow: 0 8px 32px rgba(14, 165, 233, 0.2); }
     .nt-icon { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); color: rgba(255,255,255,0.6); }
 
-    /* --- CONTENT PAGES --- */
-    .content-page { padding: 40px; height: 100%; overflow-y: auto; background: var(--bg-dark); transition: background 0.3s; }
+    /* --- SETTINGS PAGE --- */
+    .content-page { padding: 40px; height: 100%; width: 100%; overflow-y: auto; overflow-x: hidden; background: var(--bg-dark); transition: background 0.3s; }
     .content-header { margin-bottom: 30px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 20px; }
     .content-title { font-size: 24px; font-weight: 600; color: var(--text-primary); }
-    .grid-layout { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
-    .card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 20px; }
+    .grid-layout { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; padding-bottom: 60px; }
+    .card { background: rgba(255,255,255, var(--glass-opacity)); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius-md); padding: 20px; backdrop-filter: blur(5px); }
     .card-title { font-size: 14px; font-weight: 600; margin-bottom: 15px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; }
     .wp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-    .wp-thumb { width: 100%; height: 60px; border-radius: 6px; object-fit: cover; cursor: pointer; border: 2px solid transparent; opacity: 0.7; transition: 0.2s; }
+    .wp-thumb { width: 100%; height: 60px; border-radius: var(--radius-sm); object-fit: cover; border: 2px solid transparent; opacity: 0.7; transition: 0.2s; }
     .wp-thumb:hover { opacity: 1; }
     .wp-thumb.selected { border-color: var(--accent-primary); opacity: 1; }
-    .btn { width: 100%; padding: 10px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; font-size: 13px; transition: 0.2s; }
+    .btn { width: 100%; padding: 10px; border-radius: var(--radius-sm); border: none; font-weight: 600; font-size: 13px; transition: 0.2s; margin-bottom: 5px; font-family: var(--ui-font); }
     .btn-primary { background: var(--accent-primary); color: #fff; }
     .btn-primary:hover { filter: brightness(1.1); }
     .btn-danger { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); }
     .btn-danger:hover { background: rgba(239, 68, 68, 0.2); }
+    
     .switch { position: relative; display: inline-block; width: 40px; height: 22px; }
     .switch input { opacity: 0; width: 0; height: 0; }
-    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; }
-    .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .4s; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 34px; }
+    .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
     input:checked + .slider { background-color: var(--accent-primary); }
     input:checked + .slider:before { transform: translateX(18px); }
-    .slider.round { border-radius: 34px; }
-    .slider.round:before { border-radius: 50%; }
 
-    /* --- PROFILES UI --- */
+    .setting-input { width: 100%; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 8px; border-radius: var(--radius-sm); margin-bottom: 10px; font-family: var(--ui-font); }
+    .color-picker-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 13px; color: var(--text-secondary); }
+    input[type="color"] { background: none; border: none; width: 30px; height: 30px; cursor: pointer; }
+    input[type="range"] { -webkit-appearance: none; width: 100%; background: rgba(255,255,255,0.1); height: 4px; border-radius: 2px; margin: 10px 0; }
+    input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; background: var(--accent-primary); border-radius: 50%; cursor: pointer; transition: transform 0.1s; }
+    input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+    /* --- PROFILES --- */
     .chat-layout { display: flex; height: 100%; gap: 1px; background: var(--nav-bg); }
     .sidebar { width: 250px; background: rgba(255,255,255,0.02); display: flex; flex-direction: column; border-right: 1px solid rgba(255,255,255,0.05); }
     .chat-main { flex: 1; display: flex; flex-direction: column; background: var(--bg-dark); }
@@ -239,32 +231,23 @@
     .sidebar-tab { flex: 1; padding: 8px; text-align: center; border-radius: 4px; cursor: pointer; font-size: 12px; color: var(--text-secondary); background: rgba(255,255,255,0.02); }
     .sidebar-tab.active { background: var(--accent-primary); color: #fff; }
     .user-list { flex: 1; overflow-y: auto; padding: 10px; }
-    .user-item { padding: 8px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 10px; margin-bottom: 2px; transition: 0.2s; font-size: 13px; color: var(--text-secondary); }
+    .user-item { padding: 8px; border-radius: var(--radius-sm); cursor: pointer; display: flex; align-items: center; gap: 10px; margin-bottom: 2px; transition: 0.2s; font-size: 13px; color: var(--text-secondary); }
     .user-item:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
     .user-item.active { background: rgba(14, 165, 233, 0.2); color: var(--accent-primary); }
     #profile-chatBox { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 8px; }
-    .msg-bubble { padding: 8px 14px; border-radius: 12px; max-width: 70%; font-size: 13px; line-height: 1.4; }
+    .msg-bubble { padding: 8px 14px; border-radius: var(--radius-md); max-width: 70%; font-size: 13px; line-height: 1.4; }
     .msg-bubble.me { background: var(--accent-primary); color: #fff; align-self: flex-end; }
     .msg-bubble.them { background: rgba(255,255,255,0.08); color: var(--text-primary); align-self: flex-start; }
-    .msg-meta { font-size: 10px; opacity: 0.5; margin-top: 2px; display: block; }
     .chat-input-area { padding: 10px 16px; border-top: 1px solid rgba(255,255,255,0.05); display: flex; gap: 10px; }
-    .chat-input { flex: 1; background: rgba(255,255,255,0.05); border: none; border-radius: 6px; padding: 10px; color: #fff; }
-    .chat-input:focus { background: rgba(255,255,255,0.08); }
+    .chat-input { flex: 1; background: rgba(255,255,255,0.05); border: none; border-radius: var(--radius-sm); padding: 10px; color: #fff; }
 
     /* --- PANELS --- */
-    .float-panel {
-        position: absolute; top: 60px; right: 20px; width: 300px; background: #0f0f12;
-        border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 16px; z-index: 2000; display: none; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    }
+    .float-panel { position: absolute; top: 60px; right: 20px; width: 300px; background: #0f0f12; border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius-md); padding: 16px; z-index: 2000; display: none; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    .layout-bottom .float-panel { top: auto; bottom: 60px; }
     .hidden { display: none !important; }
 
     /* --- DYNAMIC ISLAND --- */
-    #dynamic-island {
-        position: fixed; top: 60px; right: 20px; width: 260px; background: #000; border-radius: 20px;
-        padding: 12px; z-index: 99999; box-shadow: 0 10px 40px rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1);
-        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); opacity: 0; transform: scale(0.9) translateY(-20px); pointer-events: none;
-        display: flex; flex-direction: column; gap: 8px;
-    }
+    #dynamic-island { position: fixed; top: 60px; right: 20px; width: 260px; background: #000; border-radius: 20px; padding: 12px; z-index: 99999; box-shadow: 0 10px 40px rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1); transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); opacity: 0; transform: scale(0.9) translateY(-20px); pointer-events: none; display: flex; flex-direction: column; gap: 8px; }
     #dynamic-island.active { opacity: 1; transform: scale(1) translateY(0); pointer-events: all; }
     .di-wrapper { display: flex; align-items: center; gap: 10px; cursor: pointer; }
     #di-img { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; background: #222; }
@@ -277,12 +260,12 @@
     .di-bar-bg { width: 100%; height: 3px; background: rgba(255,255,255,0.2); border-radius: 2px; overflow: hidden; }
     #di-bar-fill { height: 100%; background: var(--accent-primary, #0ea5e9); width: 0%; transition: width 0.2s linear; }
 </style>
+<style id="custom-css-block"></style>
 </head>
 <body>
 
     <div id="effects-overlay"></div>
     <div id="cloak-overlay" class="hidden"></div>
-    
     <div id="void-cloak-overlay"></div>
 
     <div id="click-to-enter">
@@ -315,21 +298,21 @@
 
     <div id="app-bar">
         <div id="app-bar-apps">
-            <div data-app-id="terminal" class="app-icon" title="terminal"><i class="fas fa-terminal"></i></div>
-            <div data-app-id="music" class="app-icon" title="music"><i class="fas fa-music"></i></div>
-            <div data-app-id="settings" class="app-icon" title="settings"><i class="fas fa-cog"></i></div>
+            <div data-app-id="terminal" class="app-icon" title="terminal" data-cursor="block"><i class="fas fa-terminal"></i></div>
+            <div data-app-id="music" class="app-icon" title="music" data-cursor="block"><i class="fas fa-music"></i></div>
+            <div data-app-id="settings" class="app-icon" title="settings" data-cursor="block"><i class="fas fa-cog"></i></div>
             
             <div class="divider"></div>
             
-            <div data-app-id="chat" class="app-icon" title="linkchat"><i class="fas fa-comments"></i></div>
-            <div data-app-id="profiles" class="app-icon" title="profiles"><i class="fas fa-users"></i></div>
+            <div data-app-id="chat" class="app-icon" title="linkchat" data-cursor="block"><i class="fas fa-comments"></i></div>
+            <div data-app-id="profiles" class="app-icon" title="profiles" data-cursor="block"><i class="fas fa-users"></i></div>
         </div>
 
         <div id="app-bar-system">
             <span id="current-time">00:00</span>
             <div class="divider"></div>
-            <i id="notification-icon" class="fa-solid fa-bell hover-effect"></i>
-            <i id="volume-icon" class="fa-solid fa-volume-high hover-effect"></i>
+            <i id="notification-icon" class="fa-solid fa-bell hover-effect" data-cursor="block"></i>
+            <i id="volume-icon" class="fa-solid fa-volume-high hover-effect" data-cursor="block"></i>
             <div class="divider"></div>
             <i class="fa-solid fa-battery-three-quarters" id="battery-icon"></i>
             <span id="battery-percent">--%</span>
@@ -338,7 +321,7 @@
 
     <div id="browser-container">
         <div id="browser-tab-bar">
-            <div id="new-tab-button" onclick="addTab('newtab')"><i class="fas fa-plus"></i></div>
+            <div id="new-tab-button" onclick="addTab('newtab')" data-cursor="block"><i class="fas fa-plus"></i></div>
         </div>
         <div id="browser-content-area"></div>
     </div>
@@ -352,11 +335,19 @@
 
     <div id="volume-control" class="float-panel" style="width:200px; right:120px;">
         <h3 style="margin-bottom:10px; font-size:13px; color:var(--text-tertiary);">volume</h3>
-        <input type="range" id="volume-slider" min="0" max="100" value="50" style="width:100%; accent-color:var(--accent-primary);">
+        <input type="range" id="volume-slider" min="0" max="100" value="50" style="width:100%; accent-color:var(--accent-primary);" data-cursor="block">
     </div>
 
+<script type="module">
+    import { initCursor, updateCursor } from "https://unpkg.com/ipad-cursor@latest";
+    window.ipadCursorInit = initCursor;
+    window.ipadCursorUpdate = updateCursor;
+    // Initial load if settings already saved
+    if(localStorage.getItem('ez-cursor') === 'ipad') initCursor({ enable: true });
+</script>
+
 <script>
-    // --- STARTUP LOGIC: Click to Cloak ---
+    // --- STARTUP LOGIC ---
     document.addEventListener('DOMContentLoaded', () => {
         if (window.self !== window.top) {
              const overlay = document.getElementById('click-to-enter');
@@ -367,10 +358,7 @@
                  overlay.addEventListener('click', () => {
                      const win = window.open('about:blank', '_blank');
                      if (win) {
-                         win.document.write(`
-                            <style>body,html{margin:0;padding:0;height:100%;overflow:hidden;background:#000;}</style>
-                            <iframe src="${window.location.href}" style="border:none;width:100%;height:100%;display:block;"></iframe>
-                         `);
+                         win.document.write(`<style>body,html{margin:0;padding:0;height:100%;overflow:hidden;background:#000;}</style><iframe src="${window.location.href}" style="border:none;width:100%;height:100%;display:block;"></iframe>`);
                          win.document.close();
                          window.location.href = 'https://classroom.google.com';
                      } else {
@@ -379,7 +367,62 @@
                  });
              }
         }
+        applySavedSettings();
+        
+        // IFRAME WATCHER (Auto-Inject Cursor CSS)
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.tagName === 'IFRAME') {
+                        node.addEventListener('load', () => injectCursorIntoFrame(node));
+                        injectCursorIntoFrame(node); 
+                    }
+                    if (node.querySelectorAll) {
+                        node.querySelectorAll('iframe').forEach(ifr => {
+                             ifr.addEventListener('load', () => injectCursorIntoFrame(ifr));
+                             injectCursorIntoFrame(ifr);
+                        });
+                    }
+                });
+            });
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
     });
+
+    // --- IFRAME INJECTOR ---
+    function injectCursorIntoFrame(iframe) {
+        const cursor = localStorage.getItem('ez-cursor');
+        let css = '';
+        
+        // 1. Crosshair Logic
+        if(cursor === 'crosshair') css = '* { cursor: crosshair !important; }';
+        
+        // 2. iPad Logic (CSS Simulation)
+        else if(cursor === 'ipad') {
+            const ipadCursorSVG = `url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC42KSIgc3Ryb2tlPSJub25lIi8+PC9zdmc+') 12 12, auto`;
+            css = `* { cursor: ${ipadCursorSVG} !important; }`;
+        }
+        else return;
+
+        try {
+            const doc = iframe.contentDocument;
+            if(!doc) return; 
+            
+            // Cleanup old style
+            const old = doc.getElementById('void-cursor-style');
+            if(old) old.remove();
+
+            // Inject new style
+            const style = doc.createElement('style');
+            style.id = 'void-cursor-style';
+            style.textContent = css;
+            doc.head.appendChild(style);
+        } catch(e) { }
+    }
+
+    function updateAllIframesCursor() {
+        document.querySelectorAll('iframe').forEach(ifr => injectCursorIntoFrame(ifr));
+    }
 
     // --- CORE VARIABLES ---
     let profileSocket = null;
@@ -390,15 +433,13 @@
     let tabCounter = 0;
     let initPromise = null;
     let toastTimeout = null;
-    
-    // Theme Animation Variables
     let activeThemeInterval = null;
     
-    // --- LINK CLOAK VARIABLES (Uses existing localstorage keys) ---
+    // Settings
     let voidCloakEnabled = localStorage.getItem('void-cloak-enabled') === 'true';
     let voidCloakImg = localStorage.getItem('void-cloak-img') || 'cloakimgs/1.png';
-
-    // --- APP CONFIGURATION ---
+    let searchEngine = localStorage.getItem('void-search-engine') || 'duckduckgo';
+    
     const appConfig = {
         'newtab': { name: 'new tab', type: 'content' },
         'terminal': { name: 'terminal', src: 'Jor1k/demos/main.html', type: 'iframe' },
@@ -408,6 +449,13 @@
         'settings': { name: 'settings', type: 'content' },
     };
 
+    const searchEngines = {
+        'duckduckgo': 'https://www.duckduckgo.com/search?q=%s',
+        'google': 'https://www.google.com/search?q=%s',
+        'bing': 'https://www.bing.com/search?q=%s',
+        'yahoo': 'https://search.yahoo.com/search?p=%s'
+    };
+
     function updateTime() {
         const now = new Date();
         document.getElementById('current-time').textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase();
@@ -415,23 +463,15 @@
     setInterval(updateTime, 1000);
     updateTime();
 
-    // --- NOTIFICATION LOGIC ---
     window.showToast = function(title, message) {
         const toast = document.getElementById('void-toast');
-        const tTitle = document.getElementById('toast-title');
-        const tMsg = document.getElementById('toast-msg');
-        
-        tTitle.textContent = title.toLowerCase();
-        tMsg.textContent = message.toLowerCase();
-        
+        document.getElementById('toast-title').textContent = title.toLowerCase();
+        document.getElementById('toast-msg').textContent = message.toLowerCase();
         toast.classList.add('visible');
-        
         if (toastTimeout) clearTimeout(toastTimeout);
-        toastTimeout = setTimeout(() => {
-            toast.classList.remove('visible');
-        }, 4000);
+        toastTimeout = setTimeout(() => { toast.classList.remove('visible'); }, 4000);
     }
-
+    
     function addNotificationToCenter(text) {
         const notifList = document.getElementById('notifications-list');
         const div = document.createElement('div');
@@ -440,147 +480,69 @@
         notifList.prepend(div);
     }
 
-    // --- SOCKET LOGIC (GLOBAL) ---
     function connectGlobalSocket() {
         if (profileSocket) return;
-        
         const storedUser = localStorage.getItem("void_username");
         profileSocket = io({ path: "/profiles/socket.io/", auth: { username: storedUser || null } });
-        
         profileSocket.on("init", data => {
             myProfileId = data.username;
             localStorage.setItem("void_username", myProfileId);
             profileFriends = data.friends || [];
             profileGroups = Object.fromEntries((data.groups || []).map(g => [g.id, g]));
-            
-            // If profile window is open, update it
             if(document.getElementById('my-id-display')) updateProfileUI();
         });
-
         profileSocket.on("dm", ({key, entry}) => {
-             const parts = key.split("|");
-             const other = parts[0] === myProfileId ? parts[1] : parts[0];
-             
-             // If it's not me sending it, show notification
              if (entry.from !== myProfileId) {
                  showToast(`message from ${entry.from}`, entry.text);
                  addNotificationToCenter(`dm from ${entry.from}: ${entry.text}`);
-                 
                  const icon = document.querySelector('.app-icon[data-app-id="profiles"]');
                  if (icon) icon.classList.add('has-notification');
              }
-
-             if(!profileFriends.includes(other)) { 
-                 profileFriends.push(other); 
-                 if(document.getElementById('contact-list')) updateProfileUI(); 
-             }
-             
-             // Update chat UI if open
-             if (currentProfileKey === "dm:" + key && document.getElementById('profile-chatBox')) {
-                 renderMsg(entry);
-             }
+             if(currentProfileKey === "dm:" + key && document.getElementById('profile-chatBox')) renderMsg(entry);
         });
-
         profileSocket.on("groupMsg", ({groupId, entry}) => {
-            // Notifications for groups usually optional, but let's add dot
             if (entry.from !== myProfileId) {
                 const icon = document.querySelector('.app-icon[data-app-id="profiles"]');
                 if (icon) icon.classList.add('has-notification');
             }
-            
-            if(currentProfileKey === "group:" + groupId && document.getElementById('profile-chatBox')) {
-                renderMsg(entry);
-            }
+            if(currentProfileKey === "group:" + groupId && document.getElementById('profile-chatBox')) renderMsg(entry);
         });
-        
-        // Handle Global Admin Notifications
         profileSocket.on("globalNotification", (data) => {
-            showToast(`system broadcast (${data.from})`, data.message);
+            showToast(`system broadcast`, data.message);
             addNotificationToCenter(`system: ${data.message}`);
         });
-        
-        // Standard chat history handlers
-        profileSocket.on("dmHistory", ({history}) => { 
-            const box = document.getElementById('profile-chatBox');
-            if(box) { box.innerHTML = ''; history.forEach(renderMsg); }
-        });
-        profileSocket.on("groupHistory", ({history}) => { 
-            const box = document.getElementById('profile-chatBox');
-            if(box) { box.innerHTML = ''; history.forEach(renderMsg); }
-        });
+        profileSocket.on("dmHistory", ({history}) => { const box = document.getElementById('profile-chatBox'); if(box) { box.innerHTML = ''; history.forEach(renderMsg); } });
+        profileSocket.on("groupHistory", ({history}) => { const box = document.getElementById('profile-chatBox'); if(box) { box.innerHTML = ''; history.forEach(renderMsg); } });
     }
 
-    // --- LINK CLOAK LOGIC ---
-    document.addEventListener('mouseleave', () => {
-        if(voidCloakEnabled) {
-            const cloak = document.getElementById('void-cloak-overlay');
-            cloak.style.backgroundImage = `url('${voidCloakImg}')`;
-            cloak.style.display = 'block';
-        }
-    });
-    
-    const hideCloak = () => {
-        const cloak = document.getElementById('void-cloak-overlay');
-        if(cloak.style.display === 'block') cloak.style.display = 'none';
-    }
+    document.addEventListener('mouseleave', () => { if(voidCloakEnabled) { document.getElementById('void-cloak-overlay').style.backgroundImage = `url('${voidCloakImg}')`; document.getElementById('void-cloak-overlay').style.display = 'block'; } });
+    const hideCloak = () => { document.getElementById('void-cloak-overlay').style.display = 'none'; }
     document.addEventListener('mouseenter', hideCloak);
     document.addEventListener('mousemove', hideCloak); 
-
     document.addEventListener('keydown', (e) => {
         if (e.ctrlKey && (e.key === 's' || e.key === 'S')) {
             e.preventDefault(); 
             voidCloakEnabled = !voidCloakEnabled;
             localStorage.setItem('void-cloak-enabled', voidCloakEnabled);
-            
             addNotificationToCenter(`linkcloak: ${voidCloakEnabled ? 'enabled' : 'disabled'}`);
-            
-            document.body.style.opacity = '0.5';
-            setTimeout(() => document.body.style.opacity = '1', 100);
-
-            const toggle = document.getElementById('setting-cloak-toggle');
-            if(toggle) toggle.checked = voidCloakEnabled;
+            document.body.style.opacity = '0.5'; setTimeout(() => document.body.style.opacity = '1', 100);
+            const toggle = document.getElementById('setting-cloak-toggle'); if(toggle) toggle.checked = voidCloakEnabled;
         }
     });
 
-    window.toggleCloak = function(isChecked) {
-        voidCloakEnabled = isChecked;
-        localStorage.setItem('void-cloak-enabled', isChecked);
-    }
-
-    window.setCloakImg = function(img) {
-        voidCloakImg = img;
-        localStorage.setItem('void-cloak-img', img);
-        document.querySelectorAll('.cloak-thumb').forEach(t => t.classList.remove('selected'));
-        const target = document.querySelector(`.cloak-thumb[data-img="${img}"]`);
-        if(target) target.classList.add('selected');
-    }
-
-    // --- MUSIC CONTROL VARIABLES ---
-    let musicIframeWindow = null;
     let musicTabId = null;
     let musicState = { playing: false, hasSong: false };
 
-    // --- TAB SYSTEM ---
     window.addTab = function(appId, customSrc = null, customTitle = null) {
-        // Clear notification dot when opening profiles
-        if (appId === 'profiles') {
-            const icon = document.querySelector('.app-icon[data-app-id="profiles"]');
-            if (icon) icon.classList.remove('has-notification');
-        }
-
-        // SINGLETON CHECK FOR MUSIC APP
+        if (appId === 'profiles') document.querySelector('.app-icon[data-app-id="profiles"]')?.classList.remove('has-notification');
         if (appId === 'music') {
             const existingTab = document.querySelector(`.tab-item[data-origin-app="music"]`);
-            if (existingTab) {
-                switchToTab(existingTab.dataset.tabId);
-                return;
-            }
+            if (existingTab) { switchToTab(existingTab.dataset.tabId); return; }
         }
 
         const tabBar = document.getElementById('browser-tab-bar');
         const contentArea = document.getElementById('browser-content-area');
         const config = appConfig[appId] || {};
-        
         const tabId = `tab-${appId}-${tabCounter++}`;
         const title = customTitle || config.name || 'web page';
         
@@ -588,14 +550,11 @@
         tabEl.className = 'tab-item active';
         tabEl.dataset.tabId = tabId;
         tabEl.dataset.originApp = appId;
-        tabEl.innerHTML = `
-            <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:85%">${title.toLowerCase()}</span>
-            <i class="fas fa-times tab-close"></i>
-        `;
+        tabEl.dataset.cursor = "block"; // Fix 1: Added box cursor
+        tabEl.innerHTML = `<span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:85%">${title.toLowerCase()}</span><i class="fas fa-times tab-close"></i>`;
         
         document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-
         tabBar.insertBefore(tabEl, document.getElementById('new-tab-button'));
 
         const contentEl = document.createElement('div');
@@ -609,42 +568,43 @@
                     <div class="nt-content">
                         <div class="nt-logo">lightlink</div>
                         <form class="nt-input-wrapper" onsubmit="event.preventDefault(); window.handleNewTabSearch('${tabId}', this.querySelector('input').value)">
-                            <input type="text" class="nt-input" placeholder="search or type a url..." autofocus>
+                            <input type="text" class="nt-input" placeholder="search with ${searchEngine}..." autofocus>
                             <i class="fas fa-search nt-icon"></i>
                         </form>
                     </div>
-                </div>
-            `;
+                </div>`;
             setTimeout(() => contentEl.querySelector('input')?.focus(), 50);
-        } 
-        else if (appId === 'settings') {
+        } else if (appId === 'settings') {
             contentEl.innerHTML = createSettingsContent();
             initSettingsListeners(contentEl);
-        }
-        else if (appId === 'profiles') {
+        } else if (appId === 'profiles') {
             contentEl.innerHTML = createProfileWindowContent();
             setupProfileWindowHandlers(contentEl);
-        }
-        else {
-            const src = customSrc || config.src;
-            contentEl.innerHTML = `<iframe src="${src}"></iframe>`;
+        } else {
+            const ifr = document.createElement('iframe');
+            ifr.src = customSrc || config.src;
+            ifr.onload = () => injectCursorIntoFrame(ifr);
+            contentEl.appendChild(ifr);
+            
+            // Hand-off logic for iframes
+            contentEl.addEventListener('mouseenter', () => {
+                if(localStorage.getItem('ez-cursor') === 'ipad') {
+                    document.body.classList.add('hide-fake-cursor');
+                }
+            });
+            contentEl.addEventListener('mouseleave', () => {
+                document.body.classList.remove('hide-fake-cursor');
+            });
         }
 
         contentArea.appendChild(contentEl);
+        if (appId === 'music') musicTabId = tabId;
 
-        // Capture music tab ID immediately if creating it
-        if (appId === 'music') {
-            musicTabId = tabId;
-        }
+        // Force cursor re-scan on new elements
+        if(window.ipadCursorUpdate) window.ipadCursorUpdate();
 
-        tabEl.addEventListener('click', (e) => {
-            if(!e.target.classList.contains('tab-close')) switchToTab(tabId);
-        });
-        tabEl.querySelector('.tab-close').addEventListener('click', (e) => {
-            e.stopPropagation();
-            closeTab(tabId);
-        });
-        
+        tabEl.addEventListener('click', (e) => { if(!e.target.classList.contains('tab-close')) switchToTab(tabId); });
+        tabEl.querySelector('.tab-close').addEventListener('click', (e) => { e.stopPropagation(); closeTab(tabId); });
         updateIsland(); 
     }
 
@@ -658,43 +618,25 @@
         const tabEl = document.querySelector(`.tab-item[data-tab-id="${tabId}"]`);
         const contentEl = document.getElementById(tabId);
         const isActive = tabEl?.classList.contains('active');
-
-        if (tabId === musicTabId) { 
-            musicTabId = null; 
-            musicState = { playing: false, hasSong: false }; 
-            updateIsland(); 
-        }
-
+        if (tabId === musicTabId) { musicTabId = null; musicState = { playing: false, hasSong: false }; updateIsland(); }
         if(tabEl) tabEl.remove();
         if(contentEl) contentEl.remove();
-        
         if(isActive) {
             const tabs = document.querySelectorAll('.tab-item');
             if(tabs.length > 0) switchToTab(tabs[tabs.length-1].dataset.tabId);
             else addTab('newtab');
         }
+        if(window.ipadCursorUpdate) window.ipadCursorUpdate();
     }
 
-    // --- PROXY ---
     async function initializeProxy() {
         if (initPromise) return initPromise;
         initPromise = (async () => {
-            try {
-                if (window.location.protocol === 'about:' || window.location.protocol === 'data:') {
-                      throw new Error("proxy disabled in cloaked mode (service worker restriction)");
-                }
-                if (!navigator.serviceWorker) throw new Error("service workers not supported.");
-                
-                await navigator.serviceWorker.register('/sw.js', { scope: '/service/' });
-                
-                const connection = new BareMux.BareMuxConnection("/baremux/worker.js");
-                const wispUrl = (location.protocol === "https:" ? "wss" : "ws") + "://" + location.host + "/wisp/";
-                await connection.setTransport("/epoxy/index.mjs", [{ wisp: wispUrl }]);
-            } catch (err) {
-                console.error("Proxy Init Failed:", err);
-                initPromise = null;
-                throw err;
-            }
+            if (!navigator.serviceWorker) throw new Error("service workers not supported.");
+            await navigator.serviceWorker.register('/sw.js', { scope: '/service/' });
+            const connection = new BareMux.BareMuxConnection("/baremux/worker.js");
+            const wispUrl = (location.protocol === "https:" ? "wss" : "ws") + "://" + location.host + "/wisp/";
+            await connection.setTransport("/epoxy/index.mjs", [{ wisp: wispUrl }]);
         })();
         return initPromise;
     }
@@ -703,119 +645,260 @@
         if (!query.trim()) return;
         const contentEl = document.getElementById(tabId);
         const tabEl = document.querySelector(`.tab-item[data-tab-id="${tabId}"] span`);
-        
         contentEl.innerHTML = `<div style="display:flex;justify-content:center;align-items:center;height:100%;color:var(--text-secondary); background:var(--bg-dark);">establishing secure connection...</div>`;
         if(tabEl) tabEl.textContent = query.toLowerCase();
 
         try {
             await initializeProxy();
-            const url = search(query, "https://www.duckduckgo.com/search?q=%s");
+            const targetUrl = searchEngines[searchEngine] || searchEngines['duckduckgo'];
+            const url = search(query, targetUrl);
             const encoded = __uv$config.prefix + __uv$config.encodeUrl(url);
-            contentEl.innerHTML = `<iframe src="${encoded}"></iframe>`;
+            
+            const ifr = document.createElement('iframe');
+            ifr.src = encoded;
+            ifr.onload = () => injectCursorIntoFrame(ifr);
+            contentEl.innerHTML = '';
+            contentEl.appendChild(ifr);
+            
+            // Hand-off logic for search results
+            contentEl.addEventListener('mouseenter', () => {
+                if(localStorage.getItem('ez-cursor') === 'ipad') {
+                    document.body.classList.add('hide-fake-cursor');
+                }
+            });
+            contentEl.addEventListener('mouseleave', () => {
+                document.body.classList.remove('hide-fake-cursor');
+            });
+            
         } catch (e) {
             contentEl.innerHTML = `<div style="color:#ef4444;text-align:center;padding:20px; background:var(--bg-dark);">error: ${e.message.toLowerCase()}</div>`;
         }
     };
 
-    // --- SETTINGS ---
     function createSettingsContent() {
-        let walls = '';
-        for(let i=1; i<=6; i++) {
-            walls += `<img src="Wallpapers/${i}.png" class="wp-thumb" onclick="applyWallpaper('Wallpapers/${i}.png')" data-wp="Wallpapers/${i}.png">`;
-        }
+        let presetButtons = `
+            <button onclick="setThemePreset('void-dark')" class="btn" style="background:#0a0a0f; border:1px solid #333; color:#fff" data-cursor="block">dark</button>
+            <button onclick="setThemePreset('theme-starlight')" class="btn" style="background:#f0f2f5; color:#333" data-cursor="block">light</button>
+            <button onclick="setThemePreset('theme-thanksgiving')" class="btn" style="background:#4a3728; color:#fff" data-cursor="block">autumn</button>
+            <button onclick="setThemePreset('theme-christmas')" class="btn" style="background:#143d20; color:#fff" data-cursor="block">winter</button>
+            <button onclick="setThemePreset('theme-67')" class="btn" style="background:#111; border:1px solid #444; color:#fff; grid-column: span 2;" data-cursor="block">67</button>
+        `;
 
-        let cloakImages = '';
-        for(let i=1; i<=3; i++) {
-            cloakImages += `<img src="cloakimgs/${i}.png" class="wp-thumb cloak-thumb" onclick="setCloakImg('cloakimgs/${i}.png')" data-img="cloakimgs/${i}.png">`;
-        }
-        
+        let walls = ''; for(let i=1; i<=6; i++) walls += `<img src="Wallpapers/${i}.png" class="wp-thumb" onclick="applyWallpaper('Wallpapers/${i}.png')" data-wp="Wallpapers/${i}.png" data-cursor="block">`;
+        let cloakImages = ''; for(let i=1; i<=3; i++) cloakImages += `<img src="cloakimgs/${i}.png" class="wp-thumb cloak-thumb" onclick="setCloakImg('cloakimgs/${i}.png')" data-img="cloakimgs/${i}.png" data-cursor="block">`;
+        let seOptions = Object.keys(searchEngines).map(se => `<option value="${se}" ${searchEngine === se ? 'selected' : ''}>${se}</option>`).join('');
+
         return `
             <div class="content-page">
                 <div class="content-header">
                     <h2 class="content-title">settings</h2>
                 </div>
                 <div class="grid-layout">
+                    
                     <div class="card">
-                        <div class="card-title"><i class="fas fa-palette"></i> theme</div>
-                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px">
-                            <button onclick="setTheme('void-dark')" class="btn" style="background:#0a0a0f; border:1px solid #333; color:#fff">dark</button>
-                            <button onclick="setTheme('theme-starlight')" class="btn" style="background:#f0f2f5; color:#333">light</button>
-                            <button onclick="setTheme('theme-thanksgiving')" class="btn" style="background:#4a3728; color:#fff">thanksgiving</button>
-                            <button onclick="setTheme('theme-christmas')" class="btn" style="background:#143d20; color:#fff">christmas</button>
-                            <button onclick="setTheme('theme-67')" class="btn" style="background:#111; border:1px solid #444; color:#fff; grid-column: span 2;">67</button>
+                        <div class="card-title"><i class="fas fa-palette"></i> themes</div>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:20px;">
+                            ${presetButtons}
                         </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title"><i class="fas fa-sliders-h"></i> interface tweaks</div>
+                        
+                        <div style="margin-bottom:15px">
+                            <label style="font-size:12px; color:var(--text-tertiary)">roundness</label>
+                            <input type="range" min="0" max="25" id="slider-radius" oninput="setRadius(this.value)" data-cursor="block">
+                        </div>
+
+                        <div style="margin-bottom:15px">
+                            <label style="font-size:12px; color:var(--text-tertiary)">ui transparency</label>
+                            <input type="range" min="0" max="100" id="slider-glass" oninput="setGlass(this.value)" data-cursor="block">
+                        </div>
+
+                        <div style="margin-bottom:10px">
+                            <label style="font-size:12px; color:var(--text-tertiary)">font family</label>
+                            <select onchange="setFont(this.value)" id="select-font" class="setting-input" style="background:rgba(0,0,0,0.3)" data-cursor="block">
+                                <option value="'Inter', sans-serif">modern (inter)</option>
+                                <option value="'JetBrains Mono', monospace">code (mono)</option>
+                                <option value="'Crimson Text', serif">classic (serif)</option>
+                                <option value="'Press Start 2P', cursive">retro (pixel)</option>
+                                <option value="'Comic Sans MS', cursive">playful</option>
+                            </select>
+                        </div>
+                         
+                        <div>
+                            <label style="font-size:12px; color:var(--text-tertiary)">cursor style</label>
+                            <select onchange="setCursor(this.value)" id="select-cursor" class="setting-input" style="background:rgba(0,0,0,0.3)" data-cursor="block">
+                                <option value="default">default (standard)</option>
+                                <option value="crosshair">crosshair (always)</option>
+                                <option value="ipad">ipad (magnetic)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                         <div class="card-title"><i class="fas fa-paint-brush"></i> custom colors</div>
+                         <div class="color-picker-row"><span>accent</span> <input type="color" onchange="setCustomColor('--accent-primary', this.value)" id="cp-accent" data-cursor="block"></div>
+                         <div class="color-picker-row"><span>background</span> <input type="color" onchange="setCustomColor('--bg-dark', this.value)" id="cp-bg" data-cursor="block"></div>
+                         <div class="color-picker-row"><span>navbar</span> <input type="color" onchange="setCustomColor('--nav-bg', this.value)" id="cp-nav" data-cursor="block"></div>
+                         <div class="color-picker-row"><span>text</span> <input type="color" onchange="setCustomColor('--text-primary', this.value)" id="cp-text" data-cursor="block"></div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title"><i class="fas fa-layer-group"></i> system</div>
+                        
+                        <label style="display:block; margin-bottom:5px; font-size:13px;">navbar position</label>
+                        <select onchange="setLayout(this.value)" class="setting-input" style="background:rgba(0,0,0,0.3);" data-cursor="block">
+                            <option value="top" ${!document.body.classList.contains('layout-bottom') ? 'selected' : ''}>top</option>
+                            <option value="bottom" ${document.body.classList.contains('layout-bottom') ? 'selected' : ''}>bottom</option>
+                        </select>
+
+                        <label style="display:block; margin-bottom:5px; margin-top:10px; font-size:13px;">search engine</label>
+                        <select onchange="setSearchEngine(this.value)" class="setting-input" style="background:rgba(0,0,0,0.3);" data-cursor="block">
+                            ${seOptions}
+                        </select>
+                    </div>
+
+                    <div class="card" style="grid-column: span 1;">
+                        <div class="card-title"><i class="fas fa-image"></i> wallpaper</div>
+                        <input type="text" class="setting-input" placeholder="paste image url..." onchange="applyWallpaper(this.value)" data-cursor="block">
+                        <div class="wp-grid" style="margin-top:10px">${walls}</div>
                     </div>
 
                     <div class="card">
                         <div class="card-title"><i class="fas fa-user-secret"></i> linkcloak</div>
                         <div style="margin-bottom:15px; display:flex; align-items:center; justify-content:space-between;">
-                            <span style="font-size:13px; color:var(--text-secondary)">enable auto-cloak</span>
+                            <span style="font-size:13px; color:var(--text-secondary)">auto-cloak (ctrl+s)</span>
                             <label class="switch">
                                 <input type="checkbox" id="setting-cloak-toggle" ${voidCloakEnabled ? 'checked' : ''} onchange="toggleCloak(this.checked)">
-                                <span class="slider round"></span>
+                                <span class="slider round" data-cursor="block"></span>
                             </label>
                         </div>
-                        <div class="card-title" style="font-size:12px; margin-bottom:8px">cloak image</div>
                         <div class="wp-grid">${cloakImages}</div>
-                        <p style="font-size:11px; color:var(--text-tertiary); margin-top:10px;">shortcut: <b style="color:#fff">ctrl + s</b> to toggle instantly.</p>
-                    </div>
-                    
-                    <div class="card" style="grid-column: span 2;">
-                        <div class="card-title"><i class="fas fa-image"></i> new tab wallpaper</div>
-                        <div class="wp-grid">${walls}</div>
-                        <p style="font-size:11px; color:var(--text-tertiary); margin-top:10px;">note: this only affects the new tab page.</p>
                     </div>
 
-                    <div class="card">
-                        <div class="card-title"><i class="fas fa-tools"></i> data</div>
-                        <button onclick="repairProxy()" class="btn btn-danger">clear data & reset</button>
+                    <div class="card" style="grid-column: 1 / -1;">
+                        <div class="card-title"><i class="fas fa-code"></i> advanced css</div>
+                        <textarea id="custom-css-input" spellcheck="false" style="width:100%; height:80px; background:rgba(0,0,0,0.3); color:#aaffaa; border:1px solid rgba(255,255,255,0.1); border-radius:6px; padding:10px; font-family:'JetBrains Mono', monospace; font-size:12px;" placeholder="body { ... }"></textarea>
+                        <button onclick="saveCustomCSS()" class="btn btn-primary" style="margin-top:10px; width:auto;" data-cursor="block">apply css</button>
+                        <button onclick="repairProxy()" class="btn btn-danger" style="margin-top:10px; width:auto; float:right;" data-cursor="block">factory reset</button>
                     </div>
                 </div>
             </div>
         `;
     }
 
-    function createProfileWindowContent() {
-        return `
-            <div class="chat-layout">
-                <div class="sidebar">
-                    <div class="sidebar-tabs">
-                        <div id="tab-friends" class="sidebar-tab active">friends</div>
-                        <div id="tab-groups" class="sidebar-tab">groups</div>
-                    </div>
-                    <div id="contact-list" class="user-list"></div>
-                    <div style="padding:10px; border-top:1px solid rgba(255,255,255,0.05); color:var(--text-secondary); font-size:11px;">
-                        id: <span id="my-id-display" style="color:var(--accent-primary)">...</span>
-                    </div>
-                    <div style="padding:10px; display:flex; flex-direction:column; gap:5px">
-                        <input id="grp-name" placeholder="group name" style="background:transparent; border:1px solid rgba(255,255,255,0.1); padding:5px; color:#fff; font-size:10px; border-radius:4px;">
-                        <input id="grp-mems" placeholder="members (comma sep)" style="background:transparent; border:1px solid rgba(255,255,255,0.1); padding:5px; color:#fff; font-size:10px; border-radius:4px;">
-                        <button id="btn-create-grp" class="btn btn-primary" style="padding:4px; font-size:10px;">create</button>
-                    </div>
-                </div>
-                <div class="chat-main">
-                    <div id="profile-chatBox"></div>
-                    <div class="chat-input-area">
-                        <input id="msg-input" class="chat-input" placeholder="message...">
-                        <button id="msg-send" class="btn btn-primary" style="width:auto; padding:0 20px"><i class="fas fa-paper-plane"></i></button>
-                    </div>
-                </div>
-            </div>
-        `;
+    // --- SETTINGS LOGIC ---
+    window.setRadius = function(val) {
+        document.documentElement.style.setProperty('--radius-sm', (val/2)+'px');
+        document.documentElement.style.setProperty('--radius-md', val+'px');
+        document.documentElement.style.setProperty('--radius-lg', (val*1.5)+'px');
+        localStorage.setItem('ez-radius', val);
+    }
+    
+    window.setGlass = function(val) {
+        const opacity = val / 100;
+        document.documentElement.style.setProperty('--glass-opacity', opacity);
+        const navOp = Math.max(0.6, 1 - (opacity * 0.4));
+        document.documentElement.style.setProperty('--nav-opacity', navOp);
+        localStorage.setItem('ez-glass', val);
     }
 
-    window.initSettingsListeners = function(el) {
-        const theme = localStorage.getItem('vøid-theme') || 'void-dark';
-        const wall = localStorage.getItem('vøid-wallpaper') || 'Wallpapers/5.png';
-        const currentCloak = localStorage.getItem('void-cloak-img') || 'cloakimgs/1.png';
+    window.setFont = function(val) {
+        document.documentElement.style.setProperty('--ui-font', val);
+        localStorage.setItem('ez-font', val);
+    }
+    
+    window.setCursor = async function(val) {
+        // Clear previous attributes
+        delete document.body.dataset.cursor;
         
-        el.querySelectorAll('.wp-thumb:not(.cloak-thumb)').forEach(img => {
-            if(img.dataset.wp === wall) img.classList.add('selected');
+        if(val === 'crosshair') {
+            document.body.dataset.cursor = 'crosshair';
+            updateAllIframesCursor();
+        } 
+        else if (val === 'ipad') {
+            document.body.dataset.cursor = 'ipad'; // Triggers CSS hide
+            if(!window.ipadCursorInit) {
+                const { initCursor, updateCursor } = await import("https://unpkg.com/ipad-cursor@latest");
+                window.ipadCursorInit = initCursor;
+                window.ipadCursorUpdate = updateCursor;
+            }
+            window.ipadCursorInit({ enable: true });
+            updateAllIframesCursor(); // Inject replica cursor into frames
+        }
+        else {
+            // Default: clear iframe injections
+            document.querySelectorAll('iframe').forEach(ifr => {
+                try {
+                    const el = ifr.contentDocument.getElementById('void-cursor-style');
+                    if(el) el.remove();
+                } catch(e) {}
+            });
+        }
+
+        localStorage.setItem('ez-cursor', val);
+    }
+
+    window.setThemePreset = function(theme) {
+        document.body.className = theme; 
+        if(localStorage.getItem('void-layout') === 'bottom') document.body.classList.add('layout-bottom');
+
+        // Nuke Custom Styles (Inline)
+        ['--bg-dark', '--nav-bg', '--text-primary', '--accent-primary'].forEach(p => {
+            document.documentElement.style.removeProperty(p);
         });
 
-        el.querySelectorAll('.cloak-thumb').forEach(img => {
-            if(img.dataset.img === currentCloak) img.classList.add('selected');
-        });
+        // Clear Storage
+        ['custom-bg', 'custom-nav', 'custom-text', 'custom-accent'].forEach(k => localStorage.removeItem(k));
+
+        // Update Inputs
+        setTimeout(() => {
+            const styles = getComputedStyle(document.body);
+            const bg = styles.getPropertyValue('--bg-dark').trim();
+            const accent = styles.getPropertyValue('--accent-primary').trim();
+            const nav = styles.getPropertyValue('--nav-bg').trim();
+            const text = styles.getPropertyValue('--text-primary').trim();
+            
+            const cpBg = document.getElementById('cp-bg'); if(cpBg) cpBg.value = rgb2hex(bg);
+            const cpAcc = document.getElementById('cp-accent'); if(cpAcc) cpAcc.value = rgb2hex(accent);
+            const cpNav = document.getElementById('cp-nav'); if(cpNav) cpNav.value = rgb2hex(nav);
+            const cpTxt = document.getElementById('cp-text'); if(cpTxt) cpTxt.value = rgb2hex(text);
+        }, 100);
+
+        localStorage.setItem('vøid-theme', theme);
+        handleThemeEffects(theme);
+    }
+
+    // Helper to update color pickers correctly
+    function rgb2hex(rgb) {
+        if(!rgb || rgb.indexOf('rgb') === -1) return rgb; 
+        rgb = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+        return "#" + ("0" + parseInt(rgb[1],10).toString(16)).slice(-2) + ("0" + parseInt(rgb[2],10).toString(16)).slice(-2) + ("0" + parseInt(rgb[3],10).toString(16)).slice(-2);
+    }
+
+    window.setCustomColor = function(prop, value) {
+        document.documentElement.style.setProperty(prop, value);
+        const map = { '--bg-dark': 'custom-bg', '--nav-bg': 'custom-nav', '--text-primary': 'custom-text', '--accent-primary': 'custom-accent' };
+        if(map[prop]) localStorage.setItem(map[prop], value);
+    }
+
+    window.setLayout = function(pos) {
+        if(pos === 'bottom') { document.body.classList.add('layout-bottom'); document.body.dataset.layout = 'bottom'; } 
+        else { document.body.classList.remove('layout-bottom'); document.body.dataset.layout = 'top'; }
+        localStorage.setItem('void-layout', pos);
+    }
+
+    window.setSearchEngine = function(val) {
+        searchEngine = val;
+        localStorage.setItem('void-search-engine', val);
+    }
+
+    window.saveCustomCSS = function() {
+        const css = document.getElementById('custom-css-input').value;
+        document.getElementById('custom-css-block').textContent = css;
+        localStorage.setItem('void-custom-css', css);
+        showToast('settings saved', 'custom css applied');
     }
 
     window.applyWallpaper = function(url) {
@@ -825,83 +908,131 @@
         document.querySelector(`.wp-thumb[data-wp="${url}"]`)?.classList.add('selected');
     }
 
-    // --- THEME LOGIC & EFFECTS ---
-    function clearThemeEffects() {
+    window.setCloakImg = function(img) {
+        voidCloakImg = img;
+        localStorage.setItem('void-cloak-img', img);
+        document.querySelectorAll('.cloak-thumb').forEach(t => t.classList.remove('selected'));
+        document.querySelector(`.cloak-thumb[data-img="${img}"]`)?.classList.add('selected');
+    }
+
+    window.toggleCloak = function(isChecked) {
+        voidCloakEnabled = isChecked;
+        localStorage.setItem('void-cloak-enabled', isChecked);
+    }
+
+    function initSettingsListeners(el) {
+        const radius = localStorage.getItem('ez-radius'); if(radius) el.querySelector('#slider-radius').value = radius;
+        const glass = localStorage.getItem('ez-glass'); if(glass) el.querySelector('#slider-glass').value = glass;
+        const font = localStorage.getItem('ez-font'); if(font) el.querySelector('#select-font').value = font;
+        
+        const cursor = localStorage.getItem('ez-cursor');
+        if(cursor) el.querySelector('#select-cursor').value = cursor;
+
+        const wall = localStorage.getItem('vøid-wallpaper'); if(wall) el.querySelector(`.wp-thumb[data-wp="${wall}"]`)?.classList.add('selected');
+        const cloak = localStorage.getItem('void-cloak-img'); if(cloak) el.querySelector(`.cloak-thumb[data-img="${cloak}"]`)?.classList.add('selected');
+        const css = localStorage.getItem('void-custom-css'); if(css) el.querySelector('#custom-css-input').value = css;
+
+        const getVal = (prop) => document.documentElement.style.getPropertyValue(prop).trim();
+        // Delay to allow DOM update
+        setTimeout(() => {
+             const styles = getComputedStyle(document.documentElement);
+             if(el.querySelector('#cp-bg')) el.querySelector('#cp-bg').value = rgb2hex(styles.getPropertyValue('--bg-dark').trim());
+             if(el.querySelector('#cp-accent')) el.querySelector('#cp-accent').value = rgb2hex(styles.getPropertyValue('--accent-primary').trim());
+             if(el.querySelector('#cp-nav')) el.querySelector('#cp-nav').value = rgb2hex(styles.getPropertyValue('--nav-bg').trim());
+        }, 50);
+        
+        // REFRESH CURSOR FOR SETTINGS
+        if(window.ipadCursorUpdate) window.ipadCursorUpdate();
+    }
+
+    function handleThemeEffects(theme) {
         if(activeThemeInterval) { clearInterval(activeThemeInterval); activeThemeInterval = null; }
         document.getElementById('effects-overlay').innerHTML = '';
-    }
-
-    function createFallingObject(content) {
-        const overlay = document.getElementById('effects-overlay');
-        const el = document.createElement('div');
-        el.className = 'falling-item';
-        el.style.left = Math.random() * 100 + 'vw';
-        el.style.animationDuration = (Math.random() * 3 + 2) + 's'; 
-        el.style.fontSize = (Math.random() * 20 + 10) + 'px';
-        
-        if (content.startsWith('img:')) {
-            const img = document.createElement('img');
-            img.src = content.split(':')[1];
-            img.style.width = '50px';
-            el.appendChild(img);
-        } else {
-            el.innerHTML = content;
-            if (!content.includes('style="color:')) {
-                el.style.color = '#fff';
-            }
-            el.style.opacity = '0.8';
-        }
-
-        overlay.appendChild(el);
-        setTimeout(() => el.remove(), 5000);
-    }
-
-    window.setTheme = function(theme) {
-        document.body.className = theme;
-        localStorage.setItem('vøid-theme', theme);
-        
-        clearThemeEffects();
+        const createFalling = (html) => {
+            const el = document.createElement('div'); el.className = 'falling-item'; el.innerHTML = html;
+            el.style.left = Math.random() * 100 + 'vw'; el.style.animationDuration = (Math.random() * 3 + 2) + 's';
+            document.getElementById('effects-overlay').appendChild(el);
+            setTimeout(() => el.remove(), 5000);
+        };
 
         if (theme === 'theme-thanksgiving') {
             activeThemeInterval = setInterval(() => {
-                const colors = ['#d97706', '#b45309', '#ef4444', '#f59e0b', '#78350f'];
-                const randomColor = colors[Math.floor(Math.random() * colors.length)];
-                createFallingObject(`<i class="fas fa-leaf" style="color: ${randomColor};"></i>`);
+                const c = ['#d97706', '#b45309', '#ef4444'][Math.floor(Math.random()*3)];
+                createFalling(`<i class="fas fa-leaf" style="color:${c}"></i>`);
             }, 800);
+        } else if (theme === 'theme-christmas') {
+            document.getElementById('effects-overlay').innerHTML = '<div class="xmas-lights-strand">' + new Array(30).fill('<div class="xmas-bulb"></div>').join('') + '</div>';
+            activeThemeInterval = setInterval(() => createFalling('<i class="fas fa-snowflake" style="color:#fff"></i>'), 300);
+        } else if (theme === 'theme-67') {
+             activeThemeInterval = setInterval(() => {
+                const el = document.createElement('div'); el.className = 'falling-item';
+                el.innerHTML = '<img src="67.png" style="width:40px">';
+                el.style.left = Math.random() * 100 + 'vw'; el.style.animationDuration = '3s';
+                document.getElementById('effects-overlay').appendChild(el);
+                setTimeout(()=>el.remove(),3000);
+             }, 1000);
         }
-        else if (theme === 'theme-christmas') {
-            const overlay = document.getElementById('effects-overlay');
-            let lightsHTML = '<div class="xmas-lights-strand">';
-            for(let i=0; i<30; i++) lightsHTML += '<div class="xmas-bulb"></div>';
-            lightsHTML += '</div>';
-            overlay.innerHTML = lightsHTML;
+    }
 
-            activeThemeInterval = setInterval(() => {
-                createFallingObject('<i class="fas fa-snowflake"></i>');
-            }, 300);
-        }
-        else if (theme === 'theme-67') {
-            activeThemeInterval = setInterval(() => {
-                createFallingObject('img:67.png');
-            }, 1000);
-        }
+    function applySavedSettings() {
+        const layout = localStorage.getItem('void-layout'); if(layout === 'bottom') setLayout('bottom');
+        const theme = localStorage.getItem('vøid-theme'); if(theme) { document.body.classList.add(theme); handleThemeEffects(theme); }
+
+        const customBg = localStorage.getItem('custom-bg'); if(customBg) document.documentElement.style.setProperty('--bg-dark', customBg);
+        const customNav = localStorage.getItem('custom-nav'); if(customNav) document.documentElement.style.setProperty('--nav-bg', customNav);
+        const customText = localStorage.getItem('custom-text'); if(customText) document.documentElement.style.setProperty('--text-primary', customText);
+        const customAccent = localStorage.getItem('custom-accent'); if(customAccent) document.documentElement.style.setProperty('--accent-primary', customAccent);
+
+        const wall = localStorage.getItem('vøid-wallpaper'); if(wall) document.documentElement.style.setProperty('--wallpaper', `url('${wall}')`);
+        const css = localStorage.getItem('void-custom-css'); if(css) document.getElementById('custom-css-block').textContent = css;
+
+        const radius = localStorage.getItem('ez-radius'); if(radius) window.setRadius(radius);
+        const glass = localStorage.getItem('ez-glass'); if(glass) window.setGlass(glass);
+        const font = localStorage.getItem('ez-font'); if(font) window.setFont(font);
+        
+        const cursor = localStorage.getItem('ez-cursor'); 
+        if(cursor) window.setCursor(cursor);
     }
 
     window.repairProxy = async function() {
-        if(confirm("reset all data?")) {
+        if(confirm("reset all data and settings?")) {
             const regs = await navigator.serviceWorker.getRegistrations();
             for(let reg of regs) await reg.unregister();
-            localStorage.clear();
-            sessionStorage.clear();
-            location.reload();
+            localStorage.clear(); sessionStorage.clear(); location.reload();
         }
     }
 
-    // --- UI UPDATE LOGIC ---
-    function setupProfileWindowHandlers(el) {
-        // Since the socket is now global, we just use the existing connection
-        updateProfileUI(); 
+    function createProfileWindowContent() {
+        return `
+            <div class="chat-layout">
+                <div class="sidebar">
+                    <div class="sidebar-tabs">
+                        <div id="tab-friends" class="sidebar-tab active" data-cursor="block">friends</div>
+                        <div id="tab-groups" class="sidebar-tab" data-cursor="block">groups</div>
+                    </div>
+                    <div id="contact-list" class="user-list"></div>
+                    <div style="padding:10px; border-top:1px solid rgba(255,255,255,0.05); color:var(--text-secondary); font-size:11px;">
+                        id: <span id="my-id-display" style="color:var(--accent-primary)">...</span>
+                    </div>
+                    <div style="padding:10px; display:flex; flex-direction:column; gap:5px">
+                        <input id="grp-name" placeholder="group name" style="background:transparent; border:1px solid rgba(255,255,255,0.1); padding:5px; color:#fff; font-size:10px; border-radius:4px;">
+                        <input id="grp-mems" placeholder="members (comma sep)" style="background:transparent; border:1px solid rgba(255,255,255,0.1); padding:5px; color:#fff; font-size:10px; border-radius:4px;">
+                        <button id="btn-create-grp" class="btn btn-primary" style="padding:4px; font-size:10px;" data-cursor="block">create</button>
+                    </div>
+                </div>
+                <div class="chat-main">
+                    <div id="profile-chatBox"></div>
+                    <div class="chat-input-area">
+                        <input id="msg-input" class="chat-input" placeholder="message...">
+                        <button id="msg-send" class="btn btn-primary" style="width:auto; padding:0 20px" data-cursor="block"><i class="fas fa-paper-plane"></i></button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
 
+    function setupProfileWindowHandlers(el) {
+        updateProfileUI(); 
         const tabFriends = el.querySelector('#tab-friends');
         const tabGroups = el.querySelector('#tab-groups');
         const btnSend = el.querySelector('#msg-send');
@@ -924,7 +1055,6 @@
         };
         btnSend.onclick = send;
         inpMsg.onkeypress = (e) => { if(e.key === 'Enter') send(); };
-
         btnCreate.onclick = () => {
             const name = document.getElementById('grp-name').value;
             const mems = document.getElementById('grp-mems').value.split(',').map(s=>s.trim());
@@ -946,16 +1076,13 @@
         const list = document.getElementById('contact-list');
         if(!list) return;
         list.innerHTML = '';
-        
         items.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'user-item';
-            const label = isGroup ? item.label : item;
-            const id = isGroup ? item.id : item;
+            const div = document.createElement('div'); div.className = 'user-item';
+            div.setAttribute('data-cursor', 'block');
+            const label = isGroup ? item.label : item; const id = isGroup ? item.id : item;
             div.innerHTML = `<div>${label.toLowerCase()}</div>`;
             div.onclick = () => {
-                document.querySelectorAll('.user-item').forEach(u => u.classList.remove('active'));
-                div.classList.add('active');
+                document.querySelectorAll('.user-item').forEach(u => u.classList.remove('active')); div.classList.add('active');
                 if(isGroup) { currentProfileKey = "group:" + id; profileSocket.emit('getGroup', { groupId: id }); } 
                 else { currentProfileKey = "dm:" + [myProfileId, id].sort().join('|'); profileSocket.emit('getDM', { target: id }); }
             };
@@ -964,29 +1091,18 @@
     }
 
     function renderMsg(entry) {
-        const box = document.getElementById('profile-chatBox');
-        if(!box) return;
+        const box = document.getElementById('profile-chatBox'); if(!box) return;
         const isMe = entry.from === myProfileId;
-        const div = document.createElement('div');
-        div.className = `msg-bubble ${isMe ? 'me' : 'them'}`;
+        const div = document.createElement('div'); div.className = `msg-bubble ${isMe ? 'me' : 'them'}`;
         div.innerHTML = `${entry.text.replace(/</g, "&lt;")} <span class="msg-meta">${isMe ? 'you' : entry.from}</span>`;
-        box.appendChild(div);
-        box.scrollTop = box.scrollHeight;
+        box.appendChild(div); box.scrollTop = box.scrollHeight;
     }
 
-    // --- DYNAMIC ISLAND LOGIC ---
     window.addEventListener('message', (e) => {
         if (e.data.type === 'musicUpdate') {
             musicState = e.data;
-            if (!musicIframeWindow || musicIframeWindow !== e.source) {
-                musicIframeWindow = e.source;
-                const iframes = document.querySelectorAll('iframe');
-                iframes.forEach(ifr => {
-                    if (ifr.contentWindow === e.source) {
-                        musicTabId = ifr.parentElement.id;
-                    }
-                });
-            }
+            const iframes = document.querySelectorAll('iframe');
+            iframes.forEach(ifr => { if (ifr.contentWindow === e.source) musicTabId = ifr.parentElement.id; });
             updateIsland();
         }
     });
@@ -994,82 +1110,42 @@
     window.updateIsland = function() {
         const island = document.getElementById('dynamic-island');
         const activeTab = document.querySelector('.tab-content.active');
-        
         const isMusicTabActive = activeTab && activeTab.id === musicTabId;
         const shouldShow = musicState.hasSong && !isMusicTabActive;
-
         if (shouldShow) {
-            if (island.classList.contains('hidden')) {
-                island.classList.remove('hidden');
-                void island.offsetWidth; 
-                island.classList.add('active');
-            } else if (!island.classList.contains('active')) {
-                island.classList.add('active');
-            }
-            
+            island.classList.remove('hidden'); void island.offsetWidth; island.classList.add('active');
             document.getElementById('di-title').textContent = (musicState.title || '').toLowerCase();
             document.getElementById('di-artist').textContent = (musicState.artist || '').toLowerCase();
-            
             const img = document.getElementById('di-img');
-            if (musicState.artwork) {
-                img.src = musicState.artwork;
-                img.style.display = 'block';
-            } else {
-                img.style.display = 'none';
-            }
-            
-            const toggleBtn = document.getElementById('di-toggle');
-            toggleBtn.innerHTML = musicState.isPlaying ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>';
-            
-            const pct = (musicState.currentTime / musicState.duration) * 100 || 0;
-            document.getElementById('di-bar-fill').style.width = pct + '%';
+            if (musicState.artwork) { img.src = musicState.artwork; img.style.display = 'block'; } else { img.style.display = 'none'; }
+            document.getElementById('di-toggle').innerHTML = musicState.isPlaying ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>';
+            document.getElementById('di-bar-fill').style.width = ((musicState.currentTime / musicState.duration) * 100 || 0) + '%';
         } else {
             island.classList.remove('active');
-            setTimeout(() => {
-                if(!island.classList.contains('active')) island.classList.add('hidden');
-            }, 300);
+            setTimeout(() => { if(!island.classList.contains('active')) island.classList.add('hidden'); }, 300);
         }
     }
 
-    window.activateMusicTab = function() {
-        if (musicTabId) window.switchToTab(musicTabId);
-    }
-
+    window.activateMusicTab = function() { if (musicTabId) window.switchToTab(musicTabId); }
     window.sendMusicCmd = function(action) {
-        if (musicIframeWindow) {
-            musicIframeWindow.postMessage({ type: 'musicControl', action }, '*');
-        }
+        const iframe = document.querySelector(`#${musicTabId} iframe`);
+        if (iframe) iframe.contentWindow.postMessage({ type: 'musicControl', action }, '*');
     }
 
     window.onload = () => {
-        const theme = localStorage.getItem('vøid-theme');
-        const wall = localStorage.getItem('vøid-wallpaper');
-        if(theme) window.setTheme(theme); 
-        if(wall) document.documentElement.style.setProperty('--wallpaper', `url('${wall}')`);
-
-        document.querySelectorAll('.app-icon').forEach(icon => {
-            icon.onclick = () => addTab(icon.dataset.appId);
-        });
-
-        const toggle = (id) => {
-            const p = document.getElementById(id);
-            p.style.display = p.style.display === 'block' ? 'none' : 'block';
-        };
+        document.querySelectorAll('.app-icon').forEach(icon => { icon.onclick = () => addTab(icon.dataset.appId); });
+        const toggle = (id) => { const p = document.getElementById(id); p.style.display = p.style.display === 'block' ? 'none' : 'block'; };
         document.getElementById('notification-icon').onclick = () => toggle('notification-center');
         document.getElementById('volume-icon').onclick = () => toggle('volume-control');
-
-        // Initialize Notifications/Socket immediately
-        connectGlobalSocket();
-
-        addTab('newtab');
-    };
-    
-    if(navigator.getBattery) {
-        navigator.getBattery().then(b => {
+        
+        if(navigator.getBattery) navigator.getBattery().then(b => {
             const update = () => { document.getElementById('battery-percent').textContent = Math.round(b.level*100) + '%'; };
             update(); b.addEventListener('levelchange', update);
         });
-    }
+
+        connectGlobalSocket();
+        addTab('newtab');
+    };
 </script>
 </body>
 </html>
