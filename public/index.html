@@ -342,7 +342,6 @@
     import { initCursor, updateCursor } from "https://unpkg.com/ipad-cursor@latest";
     window.ipadCursorInit = initCursor;
     window.ipadCursorUpdate = updateCursor;
-    // Initial load if settings already saved
     if(localStorage.getItem('ez-cursor') === 'ipad') initCursor({ enable: true });
 </script>
 
@@ -394,10 +393,8 @@
         const cursor = localStorage.getItem('ez-cursor');
         let css = '';
         
-        // 1. Crosshair Logic
         if(cursor === 'crosshair') css = '* { cursor: crosshair !important; }';
         
-        // 2. iPad Logic (CSS Simulation)
         else if(cursor === 'ipad') {
             const ipadCursorSVG = `url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC42KSIgc3Ryb2tlPSJub25lIi8+PC9zdmc+') 12 12, auto`;
             css = `* { cursor: ${ipadCursorSVG} !important; }`;
@@ -408,11 +405,9 @@
             const doc = iframe.contentDocument;
             if(!doc) return; 
             
-            // Cleanup old style
             const old = doc.getElementById('void-cursor-style');
             if(old) old.remove();
 
-            // Inject new style
             const style = doc.createElement('style');
             style.id = 'void-cursor-style';
             style.textContent = css;
@@ -550,7 +545,7 @@
         tabEl.className = 'tab-item active';
         tabEl.dataset.tabId = tabId;
         tabEl.dataset.originApp = appId;
-        tabEl.dataset.cursor = "block"; // Fix 1: Added box cursor
+        tabEl.dataset.cursor = "block";
         tabEl.innerHTML = `<span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:85%">${title.toLowerCase()}</span><i class="fas fa-times tab-close"></i>`;
         
         document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
@@ -586,7 +581,6 @@
             ifr.onload = () => injectCursorIntoFrame(ifr);
             contentEl.appendChild(ifr);
             
-            // Hand-off logic for iframes
             contentEl.addEventListener('mouseenter', () => {
                 if(localStorage.getItem('ez-cursor') === 'ipad') {
                     document.body.classList.add('hide-fake-cursor');
@@ -600,7 +594,6 @@
         contentArea.appendChild(contentEl);
         if (appId === 'music') musicTabId = tabId;
 
-        // Force cursor re-scan on new elements
         if(window.ipadCursorUpdate) window.ipadCursorUpdate();
 
         tabEl.addEventListener('click', (e) => { if(!e.target.classList.contains('tab-close')) switchToTab(tabId); });
@@ -660,7 +653,6 @@
             contentEl.innerHTML = '';
             contentEl.appendChild(ifr);
             
-            // Hand-off logic for search results
             contentEl.addEventListener('mouseenter', () => {
                 if(localStorage.getItem('ez-cursor') === 'ipad') {
                     document.body.classList.add('hide-fake-cursor');
@@ -810,7 +802,6 @@
     }
     
     window.setCursor = async function(val) {
-        // Clear previous attributes
         delete document.body.dataset.cursor;
         
         if(val === 'crosshair') {
@@ -818,17 +809,16 @@
             updateAllIframesCursor();
         } 
         else if (val === 'ipad') {
-            document.body.dataset.cursor = 'ipad'; // Triggers CSS hide
+            document.body.dataset.cursor = 'ipad';
             if(!window.ipadCursorInit) {
                 const { initCursor, updateCursor } = await import("https://unpkg.com/ipad-cursor@latest");
                 window.ipadCursorInit = initCursor;
                 window.ipadCursorUpdate = updateCursor;
             }
             window.ipadCursorInit({ enable: true });
-            updateAllIframesCursor(); // Inject replica cursor into frames
+            updateAllIframesCursor(); 
         }
         else {
-            // Default: clear iframe injections
             document.querySelectorAll('iframe').forEach(ifr => {
                 try {
                     const el = ifr.contentDocument.getElementById('void-cursor-style');
@@ -870,7 +860,6 @@
         handleThemeEffects(theme);
     }
 
-    // Helper to update color pickers correctly
     function rgb2hex(rgb) {
         if(!rgb || rgb.indexOf('rgb') === -1) return rgb; 
         rgb = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
@@ -933,7 +922,6 @@
         const css = localStorage.getItem('void-custom-css'); if(css) el.querySelector('#custom-css-input').value = css;
 
         const getVal = (prop) => document.documentElement.style.getPropertyValue(prop).trim();
-        // Delay to allow DOM update
         setTimeout(() => {
              const styles = getComputedStyle(document.documentElement);
              if(el.querySelector('#cp-bg')) el.querySelector('#cp-bg').value = rgb2hex(styles.getPropertyValue('--bg-dark').trim());
