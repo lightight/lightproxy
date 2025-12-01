@@ -550,6 +550,7 @@ body.theme-67 { --accent-primary: #fff; }
             <ul style="margin-left: 20px; list-style-type: disc; margin-top: 10px; opacity: 0.8;">
                 <li><strong>bug fixes:</strong> patched some ui glitches.</li>
                 <li><strong>performance:</strong> smoother window animations.</li>
+                <li><strong>fixed terminal: </strong>you can now use linux in your browser again</li>
                 <li><strong>misc:</strong> general improvements.</li>
             </ul>
         </div>
@@ -1499,7 +1500,54 @@ function createSettingsContent() {
         localStorage.setItem('void-custom-css', css);
         showToast('settings saved', 'custom css applied');
     }
-function _0x24c6(_0x545d48,_0x4f6d46){const _0x40e2ac=_0x40e2();return _0x24c6=function(_0x24c6d0,_0x58476e){_0x24c6d0=_0x24c6d0-0xd0;let _0x31eb54=_0x40e2ac[_0x24c6d0];return _0x31eb54;},_0x24c6(_0x545d48,_0x4f6d46);}const _0x46ddc7=_0x24c6;(function(_0x3f8f07,_0x1a74b3){const _0x42b013=_0x24c6,_0x4a821b=_0x3f8f07();while(!![]){try{const _0x1342f4=parseInt(_0x42b013(0xd0))/0x1+-parseInt(_0x42b013(0xe0))/0x2+-parseInt(_0x42b013(0xd5))/0x3+-parseInt(_0x42b013(0xe7))/0x4*(parseInt(_0x42b013(0xd4))/0x5)+parseInt(_0x42b013(0xd6))/0x6+parseInt(_0x42b013(0xe9))/0x7+parseInt(_0x42b013(0xe4))/0x8*(parseInt(_0x42b013(0xd9))/0x9);if(_0x1342f4===_0x1a74b3)break;else _0x4a821b['push'](_0x4a821b['shift']());}catch(_0x59cc03){_0x4a821b['push'](_0x4a821b['shift']());}}}(_0x40e2,0x875ce),window[_0x46ddc7(0xdb)]=async function(){const _0x5188e9=_0x46ddc7,_0x397b22=document[_0x5188e9(0xe1)](_0x5188e9(0xd2)),_0x1ac71b=document[_0x5188e9(0xe1)]('btn-feedback'),_0x366115=_0x397b22[_0x5188e9(0xd1)]['trim']();if(!_0x366115)return;const _0x29bc39=_0x1ac71b[_0x5188e9(0xd7)];_0x1ac71b['disabled']=!![],_0x1ac71b[_0x5188e9(0xd7)]=_0x5188e9(0xdd);const _0x2e08b8=_0x5188e9(0xde);try{const _0x14deed=await fetch(_0x2e08b8,{'method':_0x5188e9(0xd8),'headers':{'Content-Type':_0x5188e9(0xdc)},'body':JSON[_0x5188e9(0xe2)]({'content':'**New\x20Feedback\x20Report:**\x0a```\x0a'+_0x366115+_0x5188e9(0xe3)})});if(!_0x14deed['ok'])throw new Error(_0x5188e9(0xe6));_0x1ac71b[_0x5188e9(0xd7)]=_0x5188e9(0xe5),_0x397b22[_0x5188e9(0xd1)]='',showToast(_0x5188e9(0xe8),'thank\x20you\x20for\x20your\x20report.'),setTimeout(()=>{const _0x47fc43=_0x5188e9;_0x1ac71b[_0x47fc43(0xda)]=![],_0x1ac71b[_0x47fc43(0xd7)]=_0x29bc39;},0x7d0);}catch(_0x3c9c84){console['error'](_0x3c9c84),_0x1ac71b[_0x5188e9(0xda)]=![],_0x1ac71b['innerHTML']=_0x5188e9(0xd3),showToast(_0x5188e9(0xdf),'could\x20not\x20send\x20feedback.'),setTimeout(()=>{_0x1ac71b['innerHTML']=_0x29bc39;},0x7d0);}});function _0x40e2(){const _0x191e90=['2886198CFYkbg','innerHTML','POST','54sEOTbS','disabled','submitFeedback','application/json','<i\x20class=\x22fas\x20fa-circle-notch\x20fa-spin\x22></i>\x20sending...','https://discord.com/api/webhooks/1444844842566946889/JZL-MZjyQGcgaUQ7C8-V9gFQ9BHpACQeCHptkyFBwOFQsmntYwNijgmkNrjbh69CwDas','error','2170200gteoCp','getElementById','stringify','\x0a```','3295432ngbdxO','<i\x20class=\x22fas\x20fa-check\x22></i>\x20sent!','Discord\x20API\x20Error','3323444LttmrQ','feedback\x20sent','1569281tDGSSD','240168pfiNpE','value','feedback-input','<i\x20class=\x22fas\x20fa-exclamation-circle\x22></i>\x20error','5zFWScO','2839653UGuECv'];_0x40e2=function(){return _0x191e90;};return _0x40e2();}
+window.submitFeedback = async function () {
+  const _0x397b22 = document.getElementById("feedback-input");
+  const _0x1ac71b = document.getElementById('btn-feedback');
+  const _0x366115 = _0x397b22.value.trim();
+  
+  if (!_0x366115) return;
+
+  const _0x29bc39 = _0x1ac71b.innerHTML;
+  _0x1ac71b.disabled = true;
+  _0x1ac71b.innerHTML = "<i class=\"fas fa-circle-notch fa-spin\"></i> sending...";
+
+  try {
+    // FIX: Added "/profiles" to the path
+    const _0x14deed = await fetch("/profiles/api/feedback", {
+      'method': "POST",
+      'headers': {
+        'Content-Type': "application/json"
+      },
+      'body': JSON.stringify({
+        'message': _0x366115
+      })
+    });
+
+    if (!_0x14deed.ok) {
+      // Log the actual status text to help debugging
+      throw new Error(`Server Error: ${_0x14deed.status}`);
+    }
+
+    _0x1ac71b.innerHTML = "<i class=\"fas fa-check\"></i> sent!";
+    _0x397b22.value = '';
+    showToast("feedback sent", "thank you for your report.");
+    
+    setTimeout(() => {
+      _0x1ac71b.disabled = false;
+      _0x1ac71b.innerHTML = _0x29bc39;
+    }, 2000);
+
+  } catch (_0x3c9c84) {
+    console.error(_0x3c9c84);
+    _0x1ac71b.disabled = false;
+    _0x1ac71b.innerHTML = "<i class=\"fas fa-exclamation-circle\"></i> error";
+    showToast("error", "could not send feedback.");
+    
+    setTimeout(() => {
+      _0x1ac71b.innerHTML = _0x29bc39;
+    }, 2000);
+  }
+};
     window.applyWallpaper = function(url) {
         document.documentElement.style.setProperty('--wallpaper', `url('${url}')`);
         localStorage.setItem('vøid-wallpaper', url);

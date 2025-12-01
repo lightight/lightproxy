@@ -15,6 +15,7 @@ const __dirname = dirname(__filename);
 dotenv.config({ path: join(__dirname, '../.env') }); 
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL; // <--- ADDED THIS
 
 // --- 2. DATABASE SETUP ---
 const DATA_FILE = join(__dirname, "data.json");
@@ -83,6 +84,49 @@ export default async function profilesPlugin(fastify, opts) {
     prefix: "/",
     decorateReply: false,
   });
+
+  // ==========================================
+  //  NEW: SECURE FEEDBACK ROUTE (PROXY)
+  // ==========================================
+  fastify.post("/api/feedback", async (request, reply) => {
+    // 1. Get message from frontend
+    const { message } = request.body || {};
+
+    // 2. Validate input
+    if (!message || typeof message !== 'string' || !message.trim()) {
+      return reply.code(400).send({ error: "Message is required" });
+    }
+
+    // 3. Validate Server Config
+    if (!DISCORD_WEBHOOK_URL) {
+      console.error("[Profiles] Error: DISCORD_WEBHOOK_URL is missing in .env");
+      return reply.code(500).send({ error: "Server configuration error" });
+    }
+
+    try {
+      // 4. Send to Discord (Server-side fetch)
+      // Note: Node.js 18+ has built-in fetch.
+      const discordResponse = await fetch(DISCORD_WEBHOOK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: `**New Feedback Report:**\n\`\`\`\n${message}\n\`\`\``
+        })
+      });
+
+      if (!discordResponse.ok) {
+        throw new Error(`Discord returned ${discordResponse.status} ${discordResponse.statusText}`);
+      }
+
+      // 5. Success
+      return reply.send({ success: true });
+
+    } catch (err) {
+      console.error("[Profiles] Feedback failed:", err);
+      return reply.code(500).send({ error: "Failed to send feedback" });
+    }
+  });
+  // ==========================================
 
   const io = new Server(fastify.server, {
     path: "/profiles/socket.io",
