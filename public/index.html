@@ -375,6 +375,93 @@
     #tos-modal {
         z-index: 999999 !important;
     }
+/* ---------- 10× CLEANER UI ---------- */
+
+/* 1. Kill visual noise */
+* { text-transform: lowercase !important; font-weight: 400; }
+body { background: var(--bg-dark) var(--wallpaper) center/cover no-repeat; }
+
+/* 2. Big, breathing panels */
+.content-page { padding: 24px 32px 120px; }
+.grid-layout { gap: 24px; }
+.card {
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.06);
+    padding: 24px;
+    border-radius: var(--radius-lg);
+    transition: .2s;
+}
+.card:hover { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.12); }
+
+/* 3. One-click accent */
+:root { --accent-primary: #0ea5e9; }
+body.theme-starlight { --accent-primary: #0284c7; }
+body.theme-thanksgiving { --accent-primary: #d97706; }
+body.theme-christmas { --accent-primary: #ef4444; }
+body.theme-67 { --accent-primary: #fff; }
+
+/* 4. Slicker tabs */
+#browser-tab-bar { height: 44px; padding: 0 12px; }
+.tab-item {
+    max-width: 180px;
+    min-width: 120px;
+    height: 36px;
+    padding: 0 12px;
+    font-size: 13px;
+    border-bottom: 2px solid transparent;
+    transition: .15s;
+}
+.tab-item.active { border-color: var(--accent-primary); color: var(--text-primary); font-weight: 500; }
+
+/* 5. New-tab hero */
+.nt-logo { font-size: 56px; letter-spacing: -3px; margin-bottom: 24px; }
+.nt-input { height: 52px; font-size: 17px; padding-left: 48px; }
+.nt-icon { left: 18px; font-size: 16px; }
+
+/* 6. Buttons that feel like buttons */
+.btn {
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+    font-size: 13px;
+    transition: .15s;
+    cursor: pointer;
+}
+.btn-primary { background: var(--accent-primary); color: #000; font-weight: 600; }
+.btn-primary:hover { filter: brightness(1.08); }
+.btn-danger { background: rgba(239,68,68,.12); color: #f87171; border: 1px solid rgba(239,68,68,.2); }
+.btn-danger:hover { background: rgba(239,68,68,.2); }
+
+/* 7. Settings cards auto-column */
+.grid-layout { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+
+/* 8. Friend list badges */
+.user-item { position: relative; }
+.user-item.active::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 50%; transform: translateY(-50%);
+    width: 3px; height: 60%;
+    background: var(--accent-primary);
+    border-radius: 0 4px 4px 0;
+}
+
+/* 9. Micro-shadows for depth */
+#app-bar, .card, .float-panel, .modal-box {
+    box-shadow: 0 4px 24px rgba(0,0,0,.25);
+}
+
+/* 10. Smooth scroll + slim bars */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 4px; }
+
+/* 11. Keep island tiny */
+#dynamic-island { width: 240px; padding: 10px; border-radius: 16px; }
+.di-wrapper { gap: 8px; }
+#di-img { width: 36px; height: 36px; }
+
+/* 12. Exit modal bigger type */
+#exit-modal .modal-text { font-size: 14px; line-height: 1.5; }
+</style>
 </style>
 <style id="custom-css-block"></style>
 </head>
@@ -455,27 +542,22 @@
         </div>
     </div>
 </div>
-<!-- CHANGELOG MODAL -->
-    <div id="changelog-modal" class="modal-wrapper">
-        <div class="modal-box" style="width: 450px;">
-            <div class="modal-title"><i class="fas fa-rocket"></i> lightlink beta 1.1</div>
-            <div class="modal-text">
-                <p>welcome to the latest version. here is what's new:</p>
-                <ul style="margin-left: 20px; list-style-type: disc; margin-top: 10px; opacity: 0.8;">
-                    <li><strong>fixed profiles:</strong> friends and chats now save permanently.</li>
-                    <li><strong>added tos:</strong> improved safety and liability protection.</li>
-                    <li><strong>backend tweaked:</strong> migrated to persistent json database.</li>
-                    <li><strong>added credits:</strong> see the open source license.</li>
-                    <li><strong>added legal stuff:</strong> compliance updates and more.</li>
-                    <li><strong>added feedback: </strong>give us feedback in settings</li>
-
-                </ul>
-            </div>
-            <div class="modal-btns">
-                <button class="btn btn-primary" onclick="closeChangelog()" style="width:100%" data-cursor="block">ok, awesome</button>
-            </div>
+<div id="changelog-modal" class="modal-wrapper">
+    <div class="modal-box" style="width: 450px;">
+        <div class="modal-title"><i class="fas fa-rocket"></i> lightlink beta 1.1.1</div>
+        <div class="modal-text">
+            <p>hotfix update available. here is what changed:</p>
+            <ul style="margin-left: 20px; list-style-type: disc; margin-top: 10px; opacity: 0.8;">
+                <li><strong>bug fixes:</strong> patched some ui glitches.</li>
+                <li><strong>performance:</strong> smoother window animations.</li>
+                <li><strong>misc:</strong> general improvements.</li>
+            </ul>
+        </div>
+        <div class="modal-btns">
+            <button class="btn btn-primary" onclick="closeChangelog()" style="width:100%" data-cursor="block">got it</button>
         </div>
     </div>
+</div>
     <div id="dynamic-island" class="hidden">
         <div class="di-wrapper" onclick="activateMusicTab()">
             <img id="di-img" src="" onerror="this.style.display='none'">
@@ -1041,15 +1123,22 @@ window.switchToTab = function(tabId) {
         return initPromise;
     }
 // --- CHANGELOG LOGIC ---
-    window.checkChangelog = function() {
-        // Change this string for future updates (e.g. 'void_changelog_1.2')
-        const currentVersion = 'void_changelog_1.1';
-        
-        if (!localStorage.getItem(currentVersion)) {
-            const modal = document.getElementById('changelog-modal');
-            if (modal) modal.classList.add('active');
-        }
+// --- CHANGELOG LOGIC ---
+window.checkChangelog = function() {
+    // 1. UPDATE THIS STRING to a unique ID for this specific version
+    const currentVersion = 'void_changelog_1.1.1'; 
+    
+    if (!localStorage.getItem(currentVersion)) {
+        const modal = document.getElementById('changelog-modal');
+        if (modal) modal.classList.add('active');
     }
+}
+
+window.closeChangelog = function() {
+    // 2. UPDATE THIS STRING to match the one above exactly
+    localStorage.setItem('void_changelog_1.1.1', 'true');
+    document.getElementById('changelog-modal').classList.remove('active');
+}
 
     window.closeChangelog = function() {
         localStorage.setItem('void_changelog_1.1', 'true');
