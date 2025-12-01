@@ -1,16 +1,54 @@
 {
   "users": [
+    "light",
+    "damp-rose-antelope-d1d0-96eb-e8f9-bb91-4e1c-ef75-b345-c222-1722-4394-eb50",
+    "damp-rose-antelope-d1d0-96eb-e8f9-bb91-4e1c-ef75-b345-c222-1722",
+    "lightalt",
+    "competitive-salmon-damselfly",
+    "hilarious-lime-bass",
+    "united-teal-roundworm",
+    "mad-black-bee",
     "nosy-aquamarine-narwhal",
     "damp-rose-antelope-d1d0-96eb-e8f9-bb91-4e1c-ef75",
-    "damp-rose-antelope-d1d0-96eb-e8f9-bb91-4e1c-ef75-b345-c222-1722",
-    "hilarious-lime-bass",
-    "vitreous-magenta-gibbon-2bfe-7932-1185-e8dc",
-    "warm-lime-junglefowl"
+    "vitreous-magenta-gibbon-2bfe-7932-1185-e8dc"
   ],
-  "friendships": {},
-  "dmHistory": {},
+  "friendships": {
+    "light": [
+      "lightalt"
+    ],
+    "lightalt": [
+      "light"
+    ]
+  },
+  "dmHistory": {
+    "light|lightalt": [
+      {
+        "from": "vitreous-magenta-gibbon-2bfe-7932-1185-e8dc",
+        "text": "test",
+        "ts": 1764549894789
+      },
+      {
+        "from": "damp-rose-antelope-d1d0-96eb-e8f9-bb91-4e1c-ef75",
+        "text": "test",
+        "ts": 1764549897423
+      },
+      {
+        "from": "light",
+        "text": "test",
+        "ts": 1764550158385
+      },
+      {
+        "from": "lightalt",
+        "text": "test",
+        "ts": 1764550162458
+      }
+    ]
+  },
   "groups": {},
-  "lastUsernameChange": {},
-  "bannedIPs": {},
+  "lastUsernameChange": {
+    "light": 1764550147979,
+    "lightalt": 1764550153091
+  },
   "groupCounter": 0
 }
+
