@@ -7,31 +7,29 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import fastifyStatic from "@fastify/static";
 import dotenv from 'dotenv'; 
 
-// --- 1. SETUP PATHS ---
+// --- 1. SETUP PATHS & ENV ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// --- 2. LOAD .ENV EXPLICITLY ---
-// We look 1 level up ('..') to find the .env in the main project folder
+// Look 1 level up for .env
 dotenv.config({ path: join(__dirname, '../.env') }); 
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
+// --- 2. DATABASE SETUP ---
 const DATA_FILE = join(__dirname, "data.json");
-// ... rest of your code ...
 
-// Default DB Structure
 const defaultDB = {
     users: [],              
     friendships: {},        
     dmHistory: {},          
     groups: {},             
     lastUsernameChange: {}, 
-    bannedIPs: {}, // NEW: IP -> { reason, expires (timestamp or null) }
+    bannedIPs: {}, 
     groupCounter: 0
 };
 
-// Initialize with defaults
+// Initialize DB
 let db = { ...defaultDB };
 
 // Load Data Safely
@@ -40,7 +38,7 @@ if (existsSync(DATA_FILE)) {
         const fileData = JSON.parse(readFileSync(DATA_FILE, "utf-8"));
         db = { ...defaultDB, ...fileData };
         
-        // Safety checks
+        // Ensure arrays/objects exist (prevents crashes on corrupt data)
         if (!Array.isArray(db.users)) db.users = [];
         if (!db.friendships) db.friendships = {};
         if (!db.dmHistory) db.dmHistory = {};
@@ -63,11 +61,20 @@ function saveData() {
     }
 }
 
-// Helper: Get IP from socket (handles proxies like Glitch/Replit/Nginx)
+// --- 3. HELPER: SMART IP DETECTION ---
 function getIP(socket) {
-    return socket.handshake.headers['x-forwarded-for'] || socket.handshake.address;
+    const headers = socket.handshake.headers;
+    // Cloudflare
+    if (headers['cf-connecting-ip']) return headers['cf-connecting-ip'];
+    // Nginx / Reverse Proxy
+    if (headers['x-real-ip']) return headers['x-real-ip'];
+    // Forwarded For (First IP is the real one)
+    if (headers['x-forwarded-for']) return headers['x-forwarded-for'].split(',')[0].trim();
+    // Direct
+    return socket.handshake.address;
 }
 
+// --- 4. MAIN PLUGIN ---
 export default async function profilesPlugin(fastify, opts) {
   const publicDir = join(__dirname, "public");
 
@@ -86,16 +93,13 @@ export default async function profilesPlugin(fastify, opts) {
     const ip = getIP(socket);
     let username = socket.handshake.auth.username?.trim();
 
-    // --- 0. BAN CHECK ---
+    // --- A. BAN CHECK ---
     if (db.bannedIPs[ip]) {
         const ban = db.bannedIPs[ip];
-        
-        // Check if expired
         if (ban.expires && Date.now() > ban.expires) {
             delete db.bannedIPs[ip];
             saveData();
         } else {
-            // Still banned
             socket.emit("forceDisconnect", { reason: ban.reason || "Banned." });
             socket.disconnect(true);
             console.log(`[Profiles] Rejected banned IP: ${ip}`);
@@ -103,7 +107,7 @@ export default async function profilesPlugin(fastify, opts) {
         }
     }
 
-    // --- 1. Identity Logic ---
+    // --- B. IDENTITY LOGIC ---
     if (!username || !db.users.includes(username)) {
         if(!username) {
             username = uniqueNamesGenerator({ dictionaries: [adjectives, colors, animals], separator: "-", length: 3 });
@@ -120,7 +124,7 @@ export default async function profilesPlugin(fastify, opts) {
     socket.join(username);
     console.log(`[Profiles] ${username} connected [${ip}]`);
 
-    // --- 2. Send Init ---
+    // --- C. SEND INIT DATA ---
     const myFriends = db.friendships[username] || [];
     const myGroups = Object.values(db.groups).filter(g => g.members.includes(username));
     
@@ -130,70 +134,226 @@ export default async function profilesPlugin(fastify, opts) {
         groups: myGroups 
     });
 
-    // --- 3. STANDARD LOGIC (Chat, Groups, Name Change) ---
-    // (Collapsed for brevity - paste your existing standard logic here if you modify it, 
-    // but the handlers below are the critical ADMIN additions)
-    
-    // ... [PASTE YOUR EXISTING changeUsername, requestFriend, respondFriend, sendDM, sendGroup, createGroup LOGIC HERE] ...
-    // NOTE: For the sake of this answer, I will assume the previous standard logic exists. 
-    // I am only adding the NEW ADMIN EVENTS below.
+    // --- D. USERNAME CHANGE LOGIC ---
+    socket.on("changeUsername", ({ newName }) => {
+        if (!newName || newName.length < 3 || newName.length > 20) {
+            return socket.emit("system", { msg: "Name must be 3-20 characters." });
+        }
+        
+        // Cooldown Check (24h)
+        const lastChange = db.lastUsernameChange[username] || 0;
+        const now = Date.now();
+        const oneDay = 24 * 60 * 60 * 1000;
+        
+        if (now - lastChange < oneDay) {
+            const hoursLeft = Math.ceil((oneDay - (now - lastChange)) / (60 * 60 * 1000));
+            return socket.emit("system", { msg: `Cooldown active. Try again in ${hoursLeft} hours.` });
+        }
 
-    socket.on("changeUsername", ({ newName }) => { /* ... insert previous logic ... */ });
-    socket.on("requestFriend", ({ targetUsername }) => { /* ... insert previous logic ... */ });
-    socket.on("respondFriend", ({ from, accepted }) => { /* ... insert previous logic ... */ });
-    socket.on("sendDM", ({ target, text }) => { /* ... insert previous logic ... */ });
-    socket.on("getDM", ({ target }) => { /* ... insert previous logic ... */ });
-    socket.on("createGroup", ({ label, members }) => { /* ... insert previous logic ... */ });
-    socket.on("sendGroup", ({ groupId, text }) => { /* ... insert previous logic ... */ });
-    socket.on("getGroup", ({ groupId }) => { /* ... insert previous logic ... */ });
+        if (db.users.includes(newName)) {
+            return socket.emit("system", { msg: "Username already taken." });
+        }
 
+        const oldName = username;
+        console.log(`[Profiles] Renaming ${oldName} -> ${newName}`);
 
-    // --- 4. ADMIN POWER TOOLS ---
+        // --- MIGRATION START ---
+        // 1. Update User List
+        const uIdx = db.users.indexOf(oldName);
+        if (uIdx !== -1) db.users[uIdx] = newName;
 
-    // A. WARN USER
+        // 2. Update Friendships (My List)
+        if (db.friendships[oldName]) {
+            db.friendships[newName] = db.friendships[oldName];
+            delete db.friendships[oldName];
+        }
+        
+        // 3. Update Friendships (Others' Lists)
+        for (const user in db.friendships) {
+            const list = db.friendships[user];
+            const fIdx = list.indexOf(oldName);
+            if (fIdx !== -1) list[fIdx] = newName;
+        }
+
+        // 4. Update Groups
+        for (const gid in db.groups) {
+            const g = db.groups[gid];
+            const mIdx = g.members.indexOf(oldName);
+            if (mIdx !== -1) g.members[mIdx] = newName;
+        }
+
+        // 5. Update DM Keys (Complex)
+        const newHistory = {};
+        for (const key in db.dmHistory) {
+            if (key.includes(oldName)) {
+                const parts = key.split('|');
+                if (parts.includes(oldName)) {
+                    const other = parts.find(p => p !== oldName) || newName; 
+                    const newKey = [newName, other].sort().join('|');
+                    newHistory[newKey] = db.dmHistory[key];
+                } else {
+                    newHistory[key] = db.dmHistory[key];
+                }
+            } else {
+                newHistory[key] = db.dmHistory[key];
+            }
+        }
+        db.dmHistory = newHistory;
+
+        // 6. Save & Cooldown
+        db.lastUsernameChange[newName] = now;
+        if (db.lastUsernameChange[oldName]) delete db.lastUsernameChange[oldName];
+        saveData();
+
+        // --- NOTIFICATIONS ---
+        // Notify Me
+        username = newName; 
+        socket.leave(oldName);
+        socket.join(newName);
+        
+        socket.emit("usernameChanged", { newName });
+        socket.emit("system", { msg: "Username changed successfully!" });
+        socket.emit("init", { 
+            username, 
+            friends: db.friendships[username] || [], 
+            groups: Object.values(db.groups).filter(g => g.members.includes(username)) 
+        });
+
+        // Notify Friends
+        const myFriendsList = db.friendships[username] || [];
+        myFriendsList.forEach(friend => {
+             io.to(friend).emit("init", {
+                 username: friend,
+                 friends: db.friendships[friend],
+                 groups: Object.values(db.groups).filter(g => g.members.includes(friend))
+             });
+             io.to(friend).emit("system", { msg: `${oldName} changed name to ${newName}` });
+        });
+
+        // Notify Groups
+        Object.values(db.groups).forEach(g => {
+            if(g.members.includes(newName)) {
+                g.members.forEach(m => {
+                    if(m !== newName && !myFriendsList.includes(m)) {
+                         io.to(m).emit("system", { msg: `${oldName} (group ${g.label}) changed name to ${newName}` });
+                    }
+                });
+            }
+        });
+    });
+
+    // --- E. FRIEND REQUESTS ---
+    socket.on("requestFriend", ({ targetUsername }) => {
+        if (!targetUsername || targetUsername === username) return;
+        const friendsList = db.friendships[username] || [];
+        if (friendsList.includes(targetUsername)) {
+            return socket.emit("system", { msg: "You are already friends!" });
+        }
+        io.to(targetUsername).emit("friendRequest", { from: username });
+        socket.emit("system", { msg: `Request sent to ${targetUsername}` });
+    });
+
+    socket.on("respondFriend", ({ from, accepted }) => {
+        if (!from) return;
+        if (accepted) {
+            if (!db.friendships[username]) db.friendships[username] = [];
+            if (!db.friendships[from]) db.friendships[from] = [];
+            
+            if(!db.friendships[username].includes(from)) db.friendships[username].push(from);
+            if(!db.friendships[from].includes(username)) db.friendships[from].push(username);
+            saveData();
+
+            io.to(username).emit("init", { 
+                username, friends: db.friendships[username], groups: Object.values(db.groups).filter(g => g.members.includes(username))
+            });
+            io.to(from).emit("init", {
+                username: from, friends: db.friendships[from], groups: Object.values(db.groups).filter(g => g.members.includes(from))
+            });
+            io.to(from).emit("system", { msg: `${username} accepted your friend request!` });
+        }
+    });
+
+    // --- F. MESSAGING (DMs & Groups) ---
+    socket.on("sendDM", ({ target, text }) => {
+      if (!text?.trim() || !target) return;
+      const key = [username, target].sort().join("|");
+      const entry = { from: username, text: text.trim(), ts: Date.now() };
+      
+      if (!db.dmHistory[key]) db.dmHistory[key] = [];
+      db.dmHistory[key].push(entry);
+      saveData();
+
+      io.to(target).emit("dm", { key, entry });
+      io.to(username).emit("dm", { key, entry });
+    });
+
+    socket.on("getDM", ({ target }) => {
+      const key = [username, target].sort().join("|");
+      socket.emit("dmHistory", { history: db.dmHistory[key] || [] });
+    });
+
+    socket.on("createGroup", ({ label, members = [] }) => {
+      if (!label?.trim()) return socket.emit("system", { msg: "Invalid name" });
+      db.groupCounter++;
+      const groupId = `g${db.groupCounter}`;
+      const memberSet = new Set([...members, username]);
+      const group = { id: groupId, label: label.trim(), members: Array.from(memberSet), history: [] };
+      db.groups[groupId] = group;
+      saveData();
+      
+      memberSet.forEach(member => {
+          io.to(member).emit("groupCreated", group);
+          io.to(member).emit("system", { msg: `Added to group "${label}"` });
+      });
+    });
+
+    socket.on("sendGroup", ({ groupId, text }) => {
+      const group = db.groups[groupId];
+      if (!group || !group.members.includes(username) || !text?.trim()) return;
+      const entry = { from: username, text: text.trim(), ts: Date.now() };
+      group.history.push(entry);
+      saveData();
+      group.members.forEach(member => io.to(member).emit("groupMsg", { groupId, entry }));
+    });
+
+    socket.on("getGroup", ({ groupId }) => {
+      const group = db.groups[groupId];
+      if (group && group.members.includes(username)) socket.emit("groupHistory", { history: group.history });
+    });
+
+    // --- G. ADMIN POWER TOOLS ---
+
+    // 1. WARN
     socket.on("adminWarn", ({ password, target, message }) => {
         if (password !== ADMIN_PASSWORD) return socket.emit("system", { msg: "Access Denied" });
-        
         io.to(target).emit("adminWarning", { message });
         socket.emit("system", { msg: `Warned ${target}` });
     });
 
-    // B. BAN / TEMP BAN
+    // 2. BAN
     socket.on("adminBan", ({ password, target, durationMinutes, reason }) => {
         if (password !== ADMIN_PASSWORD) return socket.emit("system", { msg: "Access Denied" });
 
-        // Find the socket for this user to get their IP
-        // Since we are using rooms, we need to look up connected sockets in that room
         io.in(target).fetchSockets().then((sockets) => {
-            if (sockets.length === 0) {
-                return socket.emit("system", { msg: "User not found or offline." });
-            }
+            if (sockets.length === 0) return socket.emit("system", { msg: "User not found or offline." });
 
-            // Get IP of the first socket (user might have multiple tabs, but IP is same)
             const targetSocket = sockets[0]; 
-            // Access handshake address from the underlying socket object
-            const targetIP = targetSocket.handshake.headers['x-forwarded-for'] || targetSocket.handshake.address;
+            const targetIP = getIP(targetSocket);
 
-            // Calculate Expiry
-            let expires = null; // null = permaban
-            if (durationMinutes) {
-                expires = Date.now() + (durationMinutes * 60 * 1000);
-            }
+            let expires = null; 
+            if (durationMinutes) expires = Date.now() + (durationMinutes * 60 * 1000);
 
-            // Save to DB
             db.bannedIPs[targetIP] = { reason, expires };
             saveData();
 
-            // Kick the user immediately
             io.to(target).emit("forceDisconnect", { reason });
-            // Actually disconnect all sockets for this user
             sockets.forEach(s => s.disconnect(true));
 
-            socket.emit("system", { msg: `Banned ${target} (${targetIP}) ${durationMinutes ? 'for ' + durationMinutes + 'm' : 'permanently'}` });
+            socket.emit("system", { msg: `Banned ${target} (${targetIP})` });
         });
     });
 
-    // C. UNBAN IP
+    // 3. UNBAN
     socket.on("adminUnban", ({ password, ip }) => {
         if (password !== ADMIN_PASSWORD) return;
         if (db.bannedIPs[ip]) {
@@ -205,33 +365,23 @@ export default async function profilesPlugin(fastify, opts) {
         }
     });
 
-    // D. LIST BANS
+    // 4. LIST BANS
     socket.on("adminListBans", ({ password }) => {
         if (password !== ADMIN_PASSWORD) return;
         socket.emit("system", { msg: JSON.stringify(db.bannedIPs, null, 2) });
     });
-    // E. LIST ALL ONLINE USERS & IPs
+
+    // 5. LIST USERS
     socket.on("adminListUsers", ({ password }) => {
         if (password !== ADMIN_PASSWORD) return;
         
         const userList = [];
-        // Loop through all connected sockets to get their details
         const sockets = io.sockets.sockets; 
         
         sockets.forEach((s) => {
-            // Find the username associated with this socket
-            let user = "Unknown";
-            // We can look it up in our usernameToSocket map or the socket data
-            // Since we joined a room with the username, we can try to guess it, 
-            // but the cleanest way is if we stored it in the socket object earlier:
-            // (Make sure you add 's.username = username' in your connection logic if not already there, 
-            // otherwise we just list the IP).
-            
-            // Let's rely on the rooms:
-            const rooms = Array.from(s.rooms).filter(r => r !== s.id); // Filter out default room
-            user = rooms[0] || "Guest";
-
-            const ip = s.handshake.headers['x-forwarded-for'] || s.handshake.address;
+            const rooms = Array.from(s.rooms).filter(r => r !== s.id);
+            const user = rooms[0] || "Guest";
+            const ip = getIP(s);
             userList.push(`${user}: ${ip}`);
         });
 
