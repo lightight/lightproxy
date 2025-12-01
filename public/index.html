@@ -353,6 +353,28 @@
     #tos-consent-input {
         text-transform: uppercase !important;
     }
+    /* --- TOS CURSOR FIX --- */
+    /* 1. Force the native cursor to reappear inside the modal */
+    #tos-modal, 
+    #tos-modal * {
+        cursor: auto !important;
+    }
+
+    /* 2. Give the buttons the 'hand' cursor */
+    #tos-modal button {
+        cursor: pointer !important;
+    }
+
+    /* 3. Give the text box the 'typing' cursor */
+    #tos-modal input, 
+    #tos-modal .modal-text {
+        cursor: text !important;
+    }
+
+    /* 4. Ensure the modal is always on top of custom cursors */
+    #tos-modal {
+        z-index: 999999 !important;
+    }
 </style>
 <style id="custom-css-block"></style>
 </head>
