@@ -219,4 +219,5 @@ fastify.listen({ port, host: "0.0.0.0" }).then(() => {
   console.log(`Server running on http://localhost:${port}`);
   console.log(`- Main App:  http://localhost:${port}/`);
   console.log(`- Music App: http://localhost:${port}/music/`);
+  console.log(`- Profiles: http://localhost:${port}/profiles/`);
 });
