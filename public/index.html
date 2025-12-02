@@ -6,13 +6,27 @@
     <title>classroom</title> 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <script src="/scramjet/scramjet.all.js"></script>
+
+    <script>
+        self.__scramjet$config = {
+            prefix: '/scramjet/',
+            codec: {
+                encode: (str) => str,
+                decode: (str) => str
+            },
+            worker: '/sj.worker.js',
+            wispUrl: (location.protocol === "https:" ? "wss" : "ws") + "://" + location.host + "/wisp/"
+        };
+    </script>
+    
     <script src="/profiles/socket.io/socket.io.js"></script>
     <script src="/baremux/index.js" defer></script>
     <script src="/epoxy/index.js" defer></script>
     <script src="/uv/uv.bundle.js" defer></script>
     <script src="uv.config.js" defer></script>
     <script src="search.js"></script>
-
+    <script src="games.js"></script>
 <style>
     /* --- CORE VARIABLES --- */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Press+Start+2P&display=swap');
@@ -87,35 +101,10 @@
     }
     
     /* --- CURSOR LOGIC --- */
-    button, a, .app-icon, .tab-item, .wp-thumb, .btn, input, select { cursor: pointer; }
     
-    /* 1. Crosshair Mode */
-    body[data-cursor="crosshair"],
-    body[data-cursor="crosshair"] * {
-        cursor: crosshair !important;
-    }
 
-    /* 2. iPad Mode */
-    body[data-cursor="ipad"],
-    body[data-cursor="ipad"] * {
-        cursor: none !important;
-    }
-    
-    /* iPad Mode: Fix tab hover box */
-    body[data-cursor="ipad"] .tab-item:hover,
-    body[data-cursor="ipad"] .app-icon:hover,
-    body[data-cursor="ipad"] .btn:hover {
-        background: transparent !important;
-        box-shadow: none !important;
-    }
 
-    /* 3. iPad Mode Hand-off (Hide Fake Mouse when hovering iframe) */
-    body.hide-fake-cursor .cursor-wrapper {
-        opacity: 0 !important;
-        transition: opacity 0.1s ease-out;
-    }
 
-    .cursor-wrapper { pointer-events: none; z-index: 999999; mix-blend-mode: difference; transition: opacity 0.2s; }
 
     /* Bottom Nav Modifier */
     body.layout-bottom { flex-direction: column-reverse; }
@@ -262,17 +251,75 @@
     input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 
     /* --- PROFILES --- */
-    .chat-layout { display: flex; height: 100%; gap: 1px; background: var(--nav-bg); }
-    .sidebar { width: 250px; background: rgba(255,255,255,0.02); display: flex; flex-direction: column; border-right: 1px solid rgba(255,255,255,0.05); }
-    .chat-main { flex: 1; display: flex; flex-direction: column; background: var(--bg-dark); }
-    .sidebar-tabs { display: flex; padding: 10px; gap: 4px; }
-    .sidebar-tab { flex: 1; padding: 8px; text-align: center; border-radius: 4px; cursor: pointer; font-size: 12px; color: var(--text-secondary); background: rgba(255,255,255,0.02); }
+/* --- PROFILES REPAIR --- */
+    .chat-layout { 
+        display: flex; 
+        width: 100%; 
+        height: 100%; 
+        background: var(--nav-bg); 
+        overflow: hidden; /* Prevents scrollbar issues */
+    }
+    
+    .sidebar { 
+        width: 250px; 
+        min-width: 250px; /* Prevent crushing */
+        background: rgba(255,255,255,0.03); 
+        display: flex; 
+        flex-direction: column; 
+        border-right: 1px solid rgba(255,255,255,0.1); 
+    }
+    
+    .chat-main { 
+        flex: 1; 
+        display: flex; 
+        flex-direction: column; 
+        background: var(--bg-dark); 
+        position: relative;
+    }
+
+    .sidebar-tabs { display: flex; padding: 10px; gap: 5px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .sidebar-tab { 
+        flex: 1; 
+        padding: 8px; 
+        text-align: center; 
+        border-radius: 4px; 
+        cursor: pointer; 
+        font-size: 12px; 
+        color: var(--text-secondary); 
+        background: rgba(255,255,255,0.05); 
+        transition: 0.2s;
+    }
     .sidebar-tab.active { background: var(--accent-primary); color: #fff; }
+
     .user-list { flex: 1; overflow-y: auto; padding: 10px; }
-    .user-item { padding: 8px; border-radius: var(--radius-sm); cursor: pointer; display: flex; align-items: center; gap: 10px; margin-bottom: 2px; transition: 0.2s; font-size: 13px; color: var(--text-secondary); }
+    .user-item { 
+        padding: 10px; 
+        border-radius: 6px; 
+        cursor: pointer; 
+        display: flex; 
+        align-items: center; 
+        gap: 10px; 
+        margin-bottom: 4px; 
+        font-size: 13px; 
+        color: var(--text-secondary); 
+        border: 1px solid transparent;
+    }
     .user-item:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
-    .user-item.active { background: rgba(14, 165, 233, 0.2); color: var(--accent-primary); }
-    #profile-chatBox { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 8px; }
+    .user-item.active { 
+        background: rgba(14, 165, 233, 0.15); 
+        color: var(--accent-primary); 
+        border-color: rgba(14, 165, 233, 0.3);
+    }
+
+    /* CHAT BOX */
+    #profile-chatBox { 
+        flex: 1; 
+        overflow-y: auto; 
+        padding: 20px; 
+        display: flex; 
+        flex-direction: column; 
+        gap: 8px; 
+    }
 /* --- UPDATED CHAT BUBBLES --- */
     .msg-bubble { 
         padding: 8px 12px; 
@@ -301,8 +348,23 @@
         align-self: flex-end; /* Always tuck it to the bottom-right of the bubble */
         font-weight: 500;
     }
-    .chat-input-area { padding: 10px 16px; border-top: 1px solid rgba(255,255,255,0.05); display: flex; gap: 10px; }
-    .chat-input { flex: 1; background: rgba(255,255,255,0.05); border: none; border-radius: var(--radius-sm); padding: 10px; color: #fff; }
+.chat-input-area { 
+        padding: 15px; 
+        background: var(--nav-bg); 
+        border-top: 1px solid rgba(255,255,255,0.1); 
+        display: flex; 
+        gap: 10px; 
+    }
+    .chat-input { 
+        flex: 1; 
+        background: rgba(255,255,255,0.05); 
+        border: 1px solid rgba(255,255,255,0.1); 
+        border-radius: 6px; 
+        padding: 10px 15px; 
+        color: #fff; 
+        font-family: var(--ui-font);
+    }
+    .chat-input:focus { border-color: var(--accent-primary); }
 
     /* --- PANELS --- */
     .float-panel { position: absolute; top: 60px; right: 20px; width: 300px; background: #0f0f12; border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius-md); padding: 16px; z-index: 2000; display: none; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
@@ -542,20 +604,41 @@ body.theme-67 { --accent-primary: #fff; }
         </div>
     </div>
 </div>
+<div id="games-disclaimer-modal" class="modal-wrapper">
+    <div class="modal-box" style="width: 450px;">
+        <div class="modal-title"><i class="fas fa-gavel"></i> legal disclaimer</div>
+        <div class="modal-text">
+            <p>you are about to access the games library.</p>
+            <br>
+            <ul style="margin-left: 20px; list-style-type: disc; opacity: 0.8;">
+                <li>these games are <strong>not hosted</strong> by lightlink.</li>
+                <li>content is provided by third-party repositories (gn-math, selenite, etc).</li>
+                <li>lightlink acts solely as a proxy utility.</li>
+            </ul>
+            <br>
+            <p style="font-size:12px; color:#aaa;">if you are a copyright holder, please contact the respective game provider directly to file a dmca request.</p>
+        </div>
+        <div class="modal-btns">
+            <button class="btn btn-primary" onclick="acceptGamesDisclaimer()" style="width:100%" data-cursor="block">i understand & proceed</button>
+        </div>
+    </div>
+</div>
 <div id="changelog-modal" class="modal-wrapper">
     <div class="modal-box" style="width: 450px;">
-        <div class="modal-title"><i class="fas fa-rocket"></i> lightlink beta 1.1.1</div>
+        <div class="modal-title"><i class="fas fa-rocket"></i> lightlink beta 1.2</div>
         <div class="modal-text">
-            <p>hotfix update available. here is what changed:</p>
+            <p>you are now updated. here is what changed:</p>
             <ul style="margin-left: 20px; list-style-type: disc; margin-top: 10px; opacity: 0.8;">
-                <li><strong>bug fixes:</strong> patched some ui glitches.</li>
-                <li><strong>performance:</strong> smoother window animations.</li>
-                <li><strong>fixed terminal: </strong>you can now use linux in your browser again</li>
-                <li><strong>misc:</strong> general improvements.</li>
+                <li><strong>added filters:</strong> good proxy now.</li>
+                <li><strong>games:</strong> now play games with the games app. change your provider in settings. (inspired by waves)</li>
+                <li><strong>added scramjet:</strong> cool proxy that works with a whole buncha more apps.</li>
+                <li><strong>performance:</strong> general improvements to make your experience better.</li>
+                <li><strong>removed cursors:</strong> cursors have been removed due to way too many bugs. they will come back when they aren't as buggy.</li>
+                <li><strong>linkchat?:</strong> linkchat has officially been cancelled due to it 1. taking too long, and 2. it was hard to make it so privacy focused and tailored to everyone.</li>
             </ul>
         </div>
         <div class="modal-btns">
-            <button class="btn btn-primary" onclick="closeChangelog()" style="width:100%" data-cursor="block">got it</button>
+            <button class="btn btn-primary" onclick="closeChangelog()" style="width:100%" data-cursor="block">fiyuhhhhhhhhhhhhhhhhhhhhhhh</button>
         </div>
     </div>
 </div>
@@ -578,12 +661,12 @@ body.theme-67 { --accent-primary: #fff; }
     <div id="app-bar">
         <div id="app-bar-apps">
             <div data-app-id="terminal" class="app-icon" title="terminal" data-cursor="block"><i class="fas fa-terminal"></i></div>
+            <div data-app-id="games" class="app-icon" title="games" data-cursor="block"><i class="fas fa-gamepad"></i></div>
             <div data-app-id="music" class="app-icon" title="music" data-cursor="block"><i class="fas fa-music"></i></div>
             <div data-app-id="settings" class="app-icon" title="settings" data-cursor="block"><i class="fas fa-cog"></i></div>
             
             <div class="divider"></div>
             
-            <div data-app-id="chat" class="app-icon" title="linkchat" data-cursor="block"><i class="fas fa-comments"></i></div>
             <div data-app-id="profiles" class="app-icon" title="profiles" data-cursor="block"><i class="fas fa-users"></i></div>
         </div>
 
@@ -616,13 +699,6 @@ body.theme-67 { --accent-primary: #fff; }
         <h3 style="margin-bottom:10px; font-size:13px; color:var(--text-tertiary);">volume</h3>
         <input type="range" id="volume-slider" min="0" max="100" value="50" style="width:100%; accent-color:var(--accent-primary);" data-cursor="block">
     </div>
-
-<script type="module">
-    import { initCursor, updateCursor } from "https://unpkg.com/ipad-cursor@latest";
-    window.ipadCursorInit = initCursor;
-    window.ipadCursorUpdate = updateCursor;
-    if(localStorage.getItem('ez-cursor') === 'ipad') initCursor({ enable: true });
-</script>
 <script>
     window.openTOS = function() {
         document.getElementById('tos-modal').classList.add('active');
@@ -745,18 +821,18 @@ body.theme-67 { --accent-primary: #fff; }
     
     const appConfig = {
         'newtab': { name: 'new tab', type: 'content' },
+        'games': { name: 'games', type: 'content' },
         'terminal': { name: 'terminal', src: 'Jor1k/demos/main.html', type: 'iframe' },
         'music': { name: 'music player', src: '/music/', type: 'iframe' },
-        'chat': { name: 'linkchat', src: 'chat/index.html', type: 'iframe' },
         'profiles': { name: 'profiles', type: 'content' },
         'settings': { name: 'settings', type: 'content' },
     };
 
-    const searchEngines = {
-        'duckduckgo': 'https://www.duckduckgo.com/search?q=%s',
-        'google': 'https://www.google.com/search?q=%s',
-        'bing': 'https://www.bing.com/search?q=%s',
-        'yahoo': 'https://search.yahoo.com/search?p=%s'
+const searchEngines = {
+        'duckduckgo': 'https://duckduckgo.com/?q=%s&kp=1',      // kp=1 forces Safe Search
+        'google': 'https://www.google.com/search?q=%s&safe=active', // safe=active forces Strict Mode
+        'bing': 'https://www.bing.com/search?q=%s&adlt=strict', // adlt=strict forces Strict Mode
+        'yahoo': 'https://search.yahoo.com/search?p=%s&vm=r'    // vm=r forces Restricted Mode
     };
 
     function updateTime() {
@@ -1010,35 +1086,43 @@ function connectGlobalSocket() {
     let musicTabId = null;
     let musicState = { playing: false, hasSong: false };
 
-    window.addTab = function(appId, customSrc = null, customTitle = null) {
-        if (appId === 'profiles') document.querySelector('.app-icon[data-app-id="profiles"]')?.classList.remove('has-notification');
+window.addTab = function(appId, customSrc = null, customTitle = null) {
+        // 1. Handle Special App States
+        if (appId === 'profiles') {
+            document.querySelector('.app-icon[data-app-id="profiles"]')?.classList.remove('has-notification');
+        }
         if (appId === 'music') {
             const existingTab = document.querySelector(`.tab-item[data-origin-app="music"]`);
             if (existingTab) { switchToTab(existingTab.dataset.tabId); return; }
         }
 
+        // 2. Setup Elements
         const tabBar = document.getElementById('browser-tab-bar');
         const contentArea = document.getElementById('browser-content-area');
         const config = appConfig[appId] || {};
         const tabId = `tab-${appId}-${tabCounter++}`;
         const title = customTitle || config.name || 'web page';
         
+        // 3. Create Tab Button
         const tabEl = document.createElement('div');
         tabEl.className = 'tab-item active';
         tabEl.dataset.tabId = tabId;
         tabEl.dataset.originApp = appId;
-        tabEl.dataset.cursor = "block";
         tabEl.innerHTML = `<span style="white-space:nowrap; max-width:85%">${title.toLowerCase()}</span><i class="fas fa-times tab-close"></i>`;
         
+        // Manage Active States
         document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         tabBar.insertBefore(tabEl, document.getElementById('new-tab-button'));
 
+        // 4. Create Content Container
         const contentEl = document.createElement('div');
         contentEl.className = 'tab-content active';
         contentEl.id = tabId;
         
+        // 5. DETERMINE CONTENT TYPE
         if (appId === 'newtab') {
+            // --- NEW TAB ---
             contentEl.innerHTML = `
                 <div class="new-tab-body">
                     <div class="new-tab-overlay"></div>
@@ -1051,35 +1135,49 @@ function connectGlobalSocket() {
                     </div>
                 </div>`;
             setTimeout(() => contentEl.querySelector('input')?.focus(), 50);
+
         } else if (appId === 'settings') {
+            // --- SETTINGS ---
             contentEl.innerHTML = createSettingsContent();
             initSettingsListeners(contentEl);
+
+        } else if (appId === 'games') {
+            // --- GAMES ---
+            if(!localStorage.getItem('void_games_disclaimer')) {
+                document.getElementById('games-disclaimer-modal').classList.add('active');
+                contentEl.innerHTML = `<div style="height:100%; display:flex; align-items:center; justify-content:center; color:var(--text-tertiary);">waiting for legal acceptance...</div>`;
+                window.pendingGameTab = tabId;
+            } else {
+                contentEl.innerHTML = `<div class="content-page" id="games-cont-${tabId}"></div>`;
+                setTimeout(() => window.renderGamesToContainer(`games-cont-${tabId}`), 100);
+            }
+
         } else if (appId === 'profiles') {
+            // --- PROFILES (This was broken before) ---
             contentEl.innerHTML = createProfileWindowContent();
-            setupProfileWindowHandlers(contentEl);
+            // We use a slight timeout to ensure the DOM is painted before attaching listeners
+            setTimeout(() => setupProfileWindowHandlers(contentEl), 10);
+
         } else {
+            // --- STANDARD APPS / IFRAMES ---
             const ifr = document.createElement('iframe');
             ifr.src = customSrc || config.src;
-            ifr.onload = () => injectCursorIntoFrame(ifr);
             contentEl.appendChild(ifr);
-            
-            contentEl.addEventListener('mouseenter', () => {
-                if(localStorage.getItem('ez-cursor') === 'ipad') {
-                    document.body.classList.add('hide-fake-cursor');
-                }
-            });
-            contentEl.addEventListener('mouseleave', () => {
-                document.body.classList.remove('hide-fake-cursor');
-            });
         }
 
+        // 6. Finalize
         contentArea.appendChild(contentEl);
         if (appId === 'music') musicTabId = tabId;
 
-        if(window.ipadCursorUpdate) window.ipadCursorUpdate();
-
-        tabEl.addEventListener('click', (e) => { if(!e.target.classList.contains('tab-close')) switchToTab(tabId); });
-        tabEl.querySelector('.tab-close').addEventListener('click', (e) => { e.stopPropagation(); closeTab(tabId); });
+        // Tab Click Listeners
+        tabEl.addEventListener('click', (e) => { 
+            if(!e.target.classList.contains('tab-close')) switchToTab(tabId); 
+        });
+        tabEl.querySelector('.tab-close').addEventListener('click', (e) => { 
+            e.stopPropagation(); 
+            closeTab(tabId); 
+        });
+        
         updateIsland(); 
     }
 
@@ -1111,15 +1209,88 @@ window.switchToTab = function(tabId) {
         }
         if(window.ipadCursorUpdate) window.ipadCursorUpdate();
     }
+    // --- PROXY ROUTER (The Hybrid Engine) ---
+window.getProxyUrl = function(targetUrl) {
+    const type = localStorage.getItem('void-proxy-transport') || 'uv';
+    
+    if (type === 'scramjet') {
+        // SCRAMJET LOGIC
+        // If config exists, use it. Otherwise fallback to simple appending.
+        if (window.__scramjet$config && window.__scramjet$config.codec) {
+            return window.__scramjet$config.prefix + window.__scramjet$config.codec.encode(targetUrl);
+        }
+        // Fallback for simple configs
+        return '/scramjet/' + targetUrl; 
+    } 
+    else {
+        // ULTRAVIOLET LOGIC (Default)
+        return __uv$config.prefix + __uv$config.encodeUrl(targetUrl);
+    }
+}
 
-    async function initializeProxy() {
+window.setProxyTransport = function(val) {
+    localStorage.setItem('void-proxy-transport', val);
+    showToast("settings", `proxy backend switched to ${val}`);
+}
+async function initializeProxy() {
         if (initPromise) return initPromise;
         initPromise = (async () => {
+            console.log("Proxy: Initializing...");
             if (!navigator.serviceWorker) throw new Error("service workers not supported.");
-            await navigator.serviceWorker.register('/sw.js', { scope: '/service/' });
+
+            // 1. Setup BareMux (Transport) FIRST
             const connection = new BareMux.BareMuxConnection("/baremux/worker.js");
             const wispUrl = (location.protocol === "https:" ? "wss" : "ws") + "://" + location.host + "/wisp/";
             await connection.setTransport("/epoxy/index.mjs", [{ wisp: wispUrl }]);
+            console.log("Proxy: Transport Ready");
+
+            const registrations = [];
+
+            // 2. Register UV
+            if (window.__uv$config) {
+                registrations.push(navigator.serviceWorker.register('/uv.worker.js', { scope: __uv$config.prefix }));
+            }
+
+            // 3. Register Scramjet (v2 Controller)
+            if (window.$scramjetLoadController) {
+                try {
+                    const { ScramjetController } = $scramjetLoadController();
+                    const scramjet = new ScramjetController({
+                        files: {
+                            wasm: "/scramjet/scramjet.wasm.wasm",
+                            all: "/scramjet/scramjet.all.js",
+                            sync: "/scramjet/scramjet.sync.js",
+                        }
+                    });
+                    
+                    await scramjet.init();
+                    // FIX 3: Expose scramjet to window so getProxyUrl can use it
+                    window.scramjet = scramjet;
+                    
+                    registrations.push(navigator.serviceWorker.register('/sj.worker.js', { scope: '/scramjet/' }));
+                } catch(e) {
+                    console.error("Scramjet Init Error (Likely DB Mismatch):", e);
+                }
+            }
+
+            await Promise.all(registrations);
+
+            // 4. Wait for Controller
+            if (!navigator.serviceWorker.controller) {
+                await new Promise(resolve => {
+                    const timeout = setTimeout(() => {
+                        console.warn("Proxy: Controller timed out (proceeding anyway)");
+                        resolve();
+                    }, 2000); 
+                    const check = () => {
+                        if (navigator.serviceWorker.controller) { clearTimeout(timeout); resolve(); } 
+                        else setTimeout(check, 50);
+                    };
+                    check();
+                });
+            }
+
+            console.log("Proxy: Hybrid Engine Fully Loaded");
         })();
         return initPromise;
     }
@@ -1212,40 +1383,190 @@ window.checkTOSInput = function() {
             </div>
         `;
     }
+// --- UPDATED SAFETY FILTER (Content Scanning) ---
+const BLOCKED_ROOTS = [
+    // Content
+    "porn", "sex", "xxx", "nude", "hentai", "horny",
+    "xvideo", "xnxx", "redtube", "brazzers", "chaturbate",
+    "milf", "fuck", "dick", "pussy", "vagina", "cock", "penis",
+    "gore", "suicide", "meth", "heroin", "cocaine", "kill", "murder",
+    
+    // Settings Locks
+"safe=off", "safe=images", "adlt=off", "kp=-1", "kp=-2"
+];
 
-    // Add this to your existing DOMContentLoaded event
-    window.handleNewTabSearch = async function(tabId, query) {
-        if (!query.trim()) return;
-        const contentEl = document.getElementById(tabId);
-        const tabEl = document.querySelector(`.tab-item[data-tab-id="${tabId}"] span`);
-        contentEl.innerHTML = `<div style="display:flex;justify-content:center;align-items:center;height:100%;color:var(--text-secondary); background:var(--bg-dark);">establishing secure connection...</div>`;
-        if(tabEl) tabEl.textContent = query.toLowerCase();
+const SAFE_EXCEPTIONS = [
+    "essex", "sussex", "classic", "class", "glass", "grass", "pass",
+    "assign", "assist", "hello", "shell", "killjoy", "skill", "analysis",
+    "analyst", "canal", "dickens", "cocktail", "peacock", "accumulate",
+    "assessment", "assembly", "button", "butter", "cucumber", "duck",
+    "google", "good", "pool", "loop", "coordinate", "cooperate"
+];
 
-        try {
-            await initializeProxy();
-            const targetUrl = searchEngines[searchEngine] || searchEngines['duckduckgo'];
-            const url = search(query, targetUrl);
-            const encoded = __uv$config.prefix + __uv$config.encodeUrl(url);
-            
-            const ifr = document.createElement('iframe');
-            ifr.src = encoded;
-            ifr.onload = () => injectCursorIntoFrame(ifr);
-            contentEl.innerHTML = '';
-            contentEl.appendChild(ifr);
-            
-            contentEl.addEventListener('mouseenter', () => {
-                if(localStorage.getItem('ez-cursor') === 'ipad') {
-                    document.body.classList.add('hide-fake-cursor');
-                }
-            });
-            contentEl.addEventListener('mouseleave', () => {
-                document.body.classList.remove('hide-fake-cursor');
-            });
-            
-        } catch (e) {
-            contentEl.innerHTML = `<div style="color:#ef4444;text-align:center;padding:20px; background:var(--bg-dark);">error: ${e.message.toLowerCase()}</div>`;
-        }
-    };
+// This function runs on the main menu input
+function isUnsafe(query) {
+    if (!query) return false;
+    const lower = query.toLowerCase();
+    const clean = lower.replace(/[^a-z0-9]/g, ''); 
+    const collapsed = clean.replace(/(.)\1+/g, '$1');
+
+    if (SAFE_EXCEPTIONS.some(ex => clean.includes(ex) || collapsed.includes(ex))) return false;
+    if (BLOCKED_ROOTS.some(root => clean.includes(root))) return true;
+    if (BLOCKED_ROOTS.some(root => collapsed.includes(root))) return true;
+
+    return false;
+}
+
+window.handleNewTabSearch = async function(tabId, query) {
+    if (!query.trim()) return;
+
+    const contentEl = document.getElementById(tabId);
+    const tabEl = document.querySelector(`.tab-item[data-tab-id="${tabId}"] span`);
+    
+    if(tabEl) tabEl.textContent = query.toLowerCase();
+
+    // 1. INPUT CHECK
+    if (isUnsafe(query)) {
+        contentEl.innerHTML = `
+            <div style="height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:var(--bg-dark); color:#ef4444; text-align:center;">
+                <i class="fas fa-hand-paper" style="font-size:64px; margin-bottom:20px;"></i>
+                <h2 style="font-size:24px; font-weight:700;">action blocked</h2>
+                <p style="color:var(--text-secondary); font-size:14px; margin-top:10px;">restricted keywords detected in query.</p>
+                <button onclick="addTab('newtab')" class="btn" style="margin-top:20px; background:rgba(255,255,255,0.1); width:auto;">go back</button>
+            </div>
+        `;
+        return; 
+    }
+
+    contentEl.innerHTML = `
+        <div style="height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--text-secondary); background:var(--bg-dark);">
+            <i class="fas fa-circle-notch fa-spin" style="margin-bottom:10px; color:var(--accent-primary);"></i>
+            <div>connecting...</div>
+        </div>
+    `;
+
+    try {
+        await initializeProxy();
+        const targetUrl = searchEngines[searchEngine] || searchEngines['duckduckgo'];
+        const url = search(query, targetUrl);
+const encoded = window.getProxyUrl(url);        
+        const ifr = document.createElement('iframe');
+        ifr.src = encoded;
+        ifr.style.border = 'none';
+        ifr.style.width = '100%';
+        ifr.style.height = '100%';
+        ifr.allow = "fullscreen; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
+        ifr.sandbox = "allow-forms allow-modals allow-orientation-lock allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts allow-top-navigation allow-top-navigation-by-user-activation";
+        
+        ifr.onload = () => {
+            if(typeof injectCursorIntoFrame === 'function') injectCursorIntoFrame(ifr);
+
+            try {
+                const doc = ifr.contentDocument;
+                
+                // --- INJECTION 1: UI HIDING ---
+                const style = doc.createElement('style');
+                style.textContent = `
+                    [aria-label^="SafeSearch"], [href*="preferences"], .appbar center, #ss-status,
+                    #id_sc, #id_s, a[href*="/account/general"], .ftr_s_set,
+                    .header__button--menu, .dropdown--safe-search, a[href*="/settings"],
+                    .y-hdr-min-set, [href*="preferences"] 
+                    { display: none !important; pointer-events: none !important; }
+                `;
+                if(doc.head) doc.head.appendChild(style);
+
+                // --- INJECTION 2: CONTENT SCANNER & URL WATCHDOG ---
+                const script = doc.createElement('script');
+                
+                // We inject the lists directly into the iframe so it can scan itself
+                script.textContent = `
+                    (function() {
+                        const BLOCKED = ${JSON.stringify(BLOCKED_ROOTS)};
+                        const EXCEPTIONS = ${JSON.stringify(SAFE_EXCEPTIONS)};
+                        
+                        // Scanner Function
+                        const scanPage = () => {
+                            try {
+                                const bodyText = document.body.innerText.toLowerCase();
+                                const cleanText = bodyText.replace(/[^a-z0-9]/g, '');
+
+                                // Optimization: Only scan if text is reasonably long to avoid freezing
+                                // We iterate through our blocked words and see if the page contains them
+                                for (let word of BLOCKED) {
+                                    if (cleanText.includes(word)) {
+                                        // Check exceptions (e.g. don't block "class" for "ass")
+                                        let isSafe = false;
+                                        for (let safe of EXCEPTIONS) {
+                                            if (cleanText.includes(safe.replace(/[^a-z0-9]/g, ''))) {
+                                                // If the page contains a safe word that might trigger the bad word, we verify context
+                                                // NOTE: This is a "Strict" filter, so we might block anyway.
+                                                // For "Nuclear" mode, we ignore exceptions if the bad word is explicit.
+                                            }
+                                        }
+                                        
+                                        // NUKE THE PAGE
+                                        document.body.innerHTML = \`
+                                            <div style="height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#111; color:#ef4444; font-family:sans-serif; text-align:center;">
+                                                <h1 style="font-size:40px;">PAGE BLOCKED</h1>
+                                                <p style="color:#aaa;">Content filter triggered by keyword: <strong>\${word}</strong></p>
+                                            </div>
+                                        \`;
+                                        throw new Error("Blocked");
+                                    }
+                                }
+                            } catch(e) {}
+                        };
+
+                        // URL Enforcer Function
+                        const enforceSafeSearch = () => {
+                            try {
+                                const u = new URL(window.location.href);
+                                let bad = false;
+                                if (u.hostname.includes('google') && u.searchParams.get('safe') !== 'active') {
+                                    u.searchParams.set('safe', 'active'); bad = true;
+                                }
+                                else if (u.hostname.includes('bing') && u.searchParams.get('adlt') !== 'strict') {
+                                    u.searchParams.set('adlt', 'strict'); bad = true;
+                                }
+                                else if (u.hostname.includes('duckduckgo') && u.searchParams.get('kp') !== '1') {
+                                    u.searchParams.set('kp', '1'); bad = true;
+                                }
+                                else if (u.hostname.includes('yahoo') && u.searchParams.get('vm') !== 'r') {
+                                    u.searchParams.set('vm', 'r'); bad = true;
+                                }
+                                if (bad) window.location.replace(u.toString());
+                            } catch(e) {}
+                        };
+
+                        // Run loops
+                        setInterval(scanPage, 1000); // Scan text every second
+                        setInterval(enforceSafeSearch, 500); // Check URL every 0.5s
+                    })();
+                `;
+                if(doc.head) doc.head.appendChild(script);
+
+            } catch(e) {}
+        };
+        
+        contentEl.innerHTML = '';
+        contentEl.appendChild(ifr);
+        
+        contentEl.addEventListener('mouseenter', () => {
+            if(localStorage.getItem('ez-cursor') === 'ipad') document.body.classList.add('hide-fake-cursor');
+        });
+        contentEl.addEventListener('mouseleave', () => {
+            document.body.classList.remove('hide-fake-cursor');
+        });
+        
+    } catch (e) {
+        contentEl.innerHTML = `
+            <div style="height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#ef4444; background:var(--bg-dark);">
+                <i class="fas fa-shield-alt" style="font-size:32px; margin-bottom:15px;"></i>
+                <div>${e.message.toLowerCase()}</div>
+            </div>
+        `;
+    }
+};
 
 function createSettingsContent() {
         let presetButtons = `
@@ -1294,14 +1615,6 @@ function createSettingsContent() {
                                 <option value="'Comic Sans MS', cursive">playful</option>
                             </select>
                         </div>
-                        <div>
-                            <label style="font-size:12px; color:var(--text-tertiary)">cursor style</label>
-                            <select onchange="setCursor(this.value)" id="select-cursor" class="setting-input" style="background:rgba(0,0,0,0.3)" data-cursor="block">
-                                <option value="default">default (standard)</option>
-                                <option value="crosshair">crosshair (always)</option>
-                                <option value="ipad">ipad (magnetic)</option>
-                            </select>
-                        </div>
                     </div>
 
                     <div class="card">
@@ -1314,7 +1627,19 @@ function createSettingsContent() {
 
 <div class="card">
                         <div class="card-title"><i class="fas fa-layer-group"></i> system</div>
-                        
+<label style="display:block; margin-bottom:5px; margin-top:10px; font-size:13px;">game provider</label>
+<select onchange="setGameProvider(this.value)" id="setting-game-provider" class="setting-input" style="background:rgba(0,0,0,0.3);" data-cursor="block">
+    <option value="Truffled">truffled (default)</option>
+    <option value="GN-Math">gn-math</option>
+    <option value="Selenite">selenite</option>
+    <option value="Velara">velara</option>
+    <option value="DuckMath">duckmath</option>
+</select>
+<label style="display:block; margin-bottom:5px; margin-top:10px; font-size:13px;">proxy backend</label>
+<select onchange="setProxyTransport(this.value)" id="setting-proxy-transport" class="setting-input" style="background:rgba(0,0,0,0.3);" data-cursor="block">
+    <option value="uv">ultraviolet (stable)</option>
+    <option value="scramjet">scramjet (fast)</option>
+</select>
                         <label style="display:block; margin-bottom:5px; font-size:13px;">navbar position</label>
                         <select onchange="setLayout(this.value)" class="setting-input" style="background:rgba(0,0,0,0.3);" data-cursor="block">
                             <option value="top" ${!document.body.classList.contains('layout-bottom') ? 'selected' : ''}>top</option>
@@ -1359,7 +1684,7 @@ function createSettingsContent() {
                         </button>
                     </div>
 
-                    <div class="card">
+<div class="card">
                         <div class="card-title"><i class="fas fa-heart"></i> thanks to</div>
                         <div style="display:flex; flex-direction:column; gap:8px;">
                             <button onclick="triggerExit('https://github.com/CatsJuice/ipad-cursor')" class="btn" style="text-align:left; background:rgba(255,255,255,0.05); color:var(--text-secondary); font-size:12px; display:flex; align-items:center; gap:10px;" data-cursor="block">
@@ -1370,6 +1695,9 @@ function createSettingsContent() {
                             </button>
                             <button onclick="triggerExit('https://github.com/titaniumnetwork-dev/ultraviolet-app')" class="btn" style="text-align:left; background:rgba(255,255,255,0.05); color:var(--text-secondary); font-size:12px; display:flex; align-items:center; gap:10px;" data-cursor="block">
                                 <i class="fab fa-github"></i> ultraviolet-app
+                            </button>
+                            <button onclick="triggerExit('https://github.com/l4uy/waves')" class="btn" style="text-align:left; background:rgba(255,255,255,0.05); color:var(--text-secondary); font-size:12px; display:flex; align-items:center; gap:10px;" data-cursor="block">
+                                <i class="fab fa-github"></i> waves
                             </button>
                         </div>
                     </div>
@@ -1411,36 +1739,9 @@ function createSettingsContent() {
         document.documentElement.style.setProperty('--ui-font', val);
         localStorage.setItem('ez-font', val);
     }
+
+
     
-    window.setCursor = async function(val) {
-        delete document.body.dataset.cursor;
-        
-        if(val === 'crosshair') {
-            document.body.dataset.cursor = 'crosshair';
-            updateAllIframesCursor();
-        } 
-        else if (val === 'ipad') {
-            document.body.dataset.cursor = 'ipad';
-            if(!window.ipadCursorInit) {
-                const { initCursor, updateCursor } = await import("https://unpkg.com/ipad-cursor@latest");
-                window.ipadCursorInit = initCursor;
-                window.ipadCursorUpdate = updateCursor;
-            }
-            window.ipadCursorInit({ enable: true });
-            updateAllIframesCursor(); 
-        }
-        else {
-            document.querySelectorAll('iframe').forEach(ifr => {
-                try {
-                    const el = ifr.contentDocument.getElementById('void-cursor-style');
-                    if(el) el.remove();
-                } catch(e) {}
-            });
-        }
-
-        localStorage.setItem('ez-cursor', val);
-    }
-
     window.setThemePreset = function(theme) {
         document.body.className = theme; 
         if(localStorage.getItem('void-layout') === 'bottom') document.body.classList.add('layout-bottom');
@@ -1493,6 +1794,119 @@ function createSettingsContent() {
         searchEngine = val;
         localStorage.setItem('void-search-engine', val);
     }
+// --- GAMES & PROXY LOGIC ---
+
+window.setGameProvider = function(val) {
+    localStorage.setItem('void-game-provider', val);
+    sessionStorage.removeItem(`void_games_v2_${val}`); // Clear cache
+    showToast("settings", "provider updated. reopen games tab.");
+}
+
+window.acceptGamesDisclaimer = function() {
+    localStorage.setItem('void_games_disclaimer', 'true');
+    document.getElementById('games-disclaimer-modal').classList.remove('active');
+    
+    // Reload pending tab
+    if(window.pendingGameTab) {
+        const el = document.getElementById(window.pendingGameTab);
+        if(el) {
+            el.innerHTML = `<div class="content-page" id="games-cont-${window.pendingGameTab}"></div>`;
+            window.renderGamesToContainer(`games-cont-${window.pendingGameTab}`);
+        }
+    }
+}
+
+window.launchProxiedGame = async function(url, title) {
+    // 1. Create Tab
+    window.addTab('newtab', null, title);
+    const activeContent = document.querySelector('.tab-content.active');
+    if(!activeContent) return;
+
+    activeContent.innerHTML = `
+        <div style="height:100%; width:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:var(--bg-dark);">
+            <i class="fas fa-circle-notch fa-spin" style="font-size:24px; color:var(--accent-primary); margin-bottom:15px;"></i>
+            <div style="color:var(--text-secondary); font-size:14px;">launching ${title.toLowerCase()}...</div>
+        </div>
+    `;
+
+    try {
+        await initializeProxy();
+
+        if (!url.startsWith('http')) throw new Error("Invalid Game URL");
+        
+const encoded = window.getProxyUrl(url);
+        const ifr = document.createElement('iframe');
+        
+        ifr.src = encoded;
+        ifr.style.border = 'none';
+        ifr.style.width = '100%';
+        ifr.style.height = '100%';
+        ifr.allow = "fullscreen; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
+        ifr.sandbox = "allow-forms allow-modals allow-orientation-lock allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts allow-top-navigation allow-top-navigation-by-user-activation";
+
+        // --- AGGRESSIVE SUPPRESSOR ---
+        // We run this loop every 10ms to catch the game engine the moment it initializes
+        const suppressorInterval = setInterval(() => {
+            try {
+                if (!ifr.contentWindow) return;
+                const win = ifr.contentWindow;
+                const doc = ifr.contentDocument;
+
+                // 1. Kill Native Alerts (The Popup)
+                if (win.alert.toString().includes('native code')) {
+                    win.alert = function(msg) { console.log("Suppressed alert:", msg); };
+                    win.confirm = function() { return true; };
+                }
+
+                // 2. Kill Unity Error Handler
+                // Unity often defines this specific property
+                if (win.Module && win.Module.errorHandler) {
+                    win.Module.errorHandler = function() { return true; };
+                }
+
+                // 3. Hide HTML Error Overlays (Visual Red Boxes)
+                if (doc && !doc.getElementById('void-suppress-styles')) {
+                    const style = doc.createElement('style');
+                    style.id = 'void-suppress-styles';
+                    style.textContent = `
+                        #errorBrowser, #error-browser, .error, .webgl-error-message, .webgl-error, #unity-error { 
+                            display: none !important; 
+                            opacity: 0 !important; 
+                            pointer-events: none !important;
+                            visibility: hidden !important;
+                        }
+                    `;
+                    if(doc.head) doc.head.appendChild(style);
+                }
+
+            } catch(e) {
+                // Cross-origin restrictions may occur until proxy fully takes over
+            }
+        }, 10);
+
+        // Stop the loop after 8 seconds (game should be loaded by then)
+        setTimeout(() => clearInterval(suppressorInterval), 8000);
+
+        ifr.onload = () => {
+             // Inject cursor script one last time to be sure
+             if(typeof injectCursorIntoFrame === 'function') injectCursorIntoFrame(ifr);
+             
+             // One final attempt to inject the persistent error handler
+             try {
+                 const win = ifr.contentWindow;
+                 win.onerror = function(msg) {
+                     if (String(msg).includes('callbacks') || String(msg).includes('e.data.id')) return true;
+                 };
+             } catch(e) {}
+        };
+
+        activeContent.innerHTML = '';
+        activeContent.appendChild(ifr);
+
+    } catch(e) {
+        activeContent.innerHTML = `<div style="color:#ef4444; padding:20px; text-align:center;">error: ${e.message}</div>`;
+    }
+}
 
     window.saveCustomCSS = function() {
         const css = document.getElementById('custom-css-input').value;
@@ -1567,28 +1981,64 @@ window.submitFeedback = async function () {
         localStorage.setItem('void-cloak-enabled', isChecked);
     }
 
-    function initSettingsListeners(el) {
-        const radius = localStorage.getItem('ez-radius'); if(radius) el.querySelector('#slider-radius').value = radius;
-        const glass = localStorage.getItem('ez-glass'); if(glass) el.querySelector('#slider-glass').value = glass;
-        const font = localStorage.getItem('ez-font'); if(font) el.querySelector('#select-font').value = font;
+function initSettingsListeners(el) {
+        // --- 1. SLIDERS & INPUTS ---
+        const radius = localStorage.getItem('ez-radius'); 
+        if(radius && el.querySelector('#slider-radius')) el.querySelector('#slider-radius').value = radius;
         
-        const cursor = localStorage.getItem('ez-cursor');
-        if(cursor) el.querySelector('#select-cursor').value = cursor;
+        const glass = localStorage.getItem('ez-glass'); 
+        if(glass && el.querySelector('#slider-glass')) el.querySelector('#slider-glass').value = glass;
+        
+        const font = localStorage.getItem('ez-font'); 
+        if(font && el.querySelector('#select-font')) el.querySelector('#select-font').value = font;
 
-        const wall = localStorage.getItem('vøid-wallpaper'); if(wall) el.querySelector(`.wp-thumb[data-wp="${wall}"]`)?.classList.add('selected');
-        const cloak = localStorage.getItem('void-cloak-img'); if(cloak) el.querySelector(`.cloak-thumb[data-img="${cloak}"]`)?.classList.add('selected');
-        const css = localStorage.getItem('void-custom-css'); if(css) el.querySelector('#custom-css-input').value = css;
+        const css = localStorage.getItem('void-custom-css'); 
+        if(css && el.querySelector('#custom-css-input')) el.querySelector('#custom-css-input').value = css;
 
-        const getVal = (prop) => document.documentElement.style.getPropertyValue(prop).trim();
+        // --- 2. DROPDOWNS (System) ---
+        // Game Provider
+        const gp = localStorage.getItem('void-game-provider'); 
+        if(gp && el.querySelector('#setting-game-provider')) {
+            el.querySelector('#setting-game-provider').value = gp;
+        }
+
+        // Proxy Backend (Scramjet/UV)
+        const pt = localStorage.getItem('void-proxy-transport');
+        if(pt && el.querySelector('#setting-proxy-transport')) {
+            el.querySelector('#setting-proxy-transport').value = pt;
+        }
+
+        // --- 3. VISUAL SELECTION (Wallpapers & Cloaks) ---
+        const wall = localStorage.getItem('vøid-wallpaper'); 
+        if(wall) {
+            // Remove 'selected' class from all, add to current
+            el.querySelectorAll('.wp-thumb:not(.cloak-thumb)').forEach(t => t.classList.remove('selected'));
+            el.querySelector(`.wp-thumb[data-wp="${wall}"]`)?.classList.add('selected');
+        }
+
+        const cloak = localStorage.getItem('void-cloak-img'); 
+        if(cloak) {
+            el.querySelectorAll('.cloak-thumb').forEach(t => t.classList.remove('selected'));
+            el.querySelector(`.cloak-thumb[data-img="${cloak}"]`)?.classList.add('selected');
+        }
+
+        // --- 4. COLOR PICKERS ---
+        // We use a timeout to wait for the HTML to fully render so we can read the CSS variables
         setTimeout(() => {
              const styles = getComputedStyle(document.documentElement);
-             if(el.querySelector('#cp-bg')) el.querySelector('#cp-bg').value = rgb2hex(styles.getPropertyValue('--bg-dark').trim());
-             if(el.querySelector('#cp-accent')) el.querySelector('#cp-accent').value = rgb2hex(styles.getPropertyValue('--accent-primary').trim());
-             if(el.querySelector('#cp-nav')) el.querySelector('#cp-nav').value = rgb2hex(styles.getPropertyValue('--nav-bg').trim());
+             
+             // Helper: The color input needs HEX (#ffffff), but CSS vars might be RGB
+             // Note: Assumes your global rgb2hex function exists, or we use a safe fallback
+             const safeHex = (prop) => {
+                 const val = styles.getPropertyValue(prop).trim();
+                 return (window.rgb2hex ? window.rgb2hex(val) : val); 
+             };
+
+             if(el.querySelector('#cp-bg')) el.querySelector('#cp-bg').value = safeHex('--bg-dark');
+             if(el.querySelector('#cp-accent')) el.querySelector('#cp-accent').value = safeHex('--accent-primary');
+             if(el.querySelector('#cp-nav')) el.querySelector('#cp-nav').value = safeHex('--nav-bg');
+             if(el.querySelector('#cp-text')) el.querySelector('#cp-text').value = safeHex('--text-primary');
         }, 50);
-        
-        // REFRESH CURSOR FOR SETTINGS
-        if(window.ipadCursorUpdate) window.ipadCursorUpdate();
     }
 
     function handleThemeEffects(theme) {
@@ -1635,9 +2085,6 @@ window.submitFeedback = async function () {
         const radius = localStorage.getItem('ez-radius'); if(radius) window.setRadius(radius);
         const glass = localStorage.getItem('ez-glass'); if(glass) window.setGlass(glass);
         const font = localStorage.getItem('ez-font'); if(font) window.setFont(font);
-        
-        const cursor = localStorage.getItem('ez-cursor'); 
-        if(cursor) window.setCursor(cursor);
     }
 
     window.repairProxy = async function() {
@@ -1647,119 +2094,165 @@ window.submitFeedback = async function () {
             localStorage.clear(); sessionStorage.clear(); location.reload();
         }
     }
-
 function createProfileWindowContent() {
-        return `
-            <div class="chat-layout">
-                <div class="sidebar">
-                    <div class="sidebar-tabs">
-                        <div id="tab-friends" class="sidebar-tab active" data-cursor="block">friends</div>
-                        <div id="tab-groups" class="sidebar-tab" data-cursor="block">groups</div>
-                    </div>
-                    <div id="contact-list" class="user-list"></div>
-                    
-                    <div style="padding:10px; border-top:1px solid rgba(255,255,255,0.05); color:var(--text-secondary); font-size:11px;">
-                        id: <span id="my-id-display" style="color:var(--accent-primary)">${myProfileId}</span>
-                    </div>
-
-                    <div style="padding:0 10px 10px 10px; display:flex; gap:5px;">
-                        <input id="add-friend-input" placeholder="add friend by id..." style="flex:1; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); padding:6px; color:#fff; font-size:11px; border-radius:4px; font-family:var(--ui-font);">
-                        <button id="btn-add-friend" class="btn btn-primary" style="width:auto; padding:0 10px;" data-cursor="block"><i class="fas fa-plus"></i></button>
-                    </div>
-
-                    <div style="padding:10px; border-top:1px solid rgba(255,255,255,0.05); display:flex; flex-direction:column; gap:5px">
-                        <div style="font-size:10px; color:var(--text-tertiary); margin-bottom:2px;">create group</div>
-                        <input id="grp-name" placeholder="group name" style="background:transparent; border:1px solid rgba(255,255,255,0.1); padding:5px; color:#fff; font-size:10px; border-radius:4px;">
-                        <input id="grp-mems" placeholder="members (comma sep)" style="background:transparent; border:1px solid rgba(255,255,255,0.1); padding:5px; color:#fff; font-size:10px; border-radius:4px;">
-                        <button id="btn-create-grp" class="btn" style="background:rgba(255,255,255,0.1); padding:4px; font-size:10px;" data-cursor="block">create</button>
-                    </div>
-
-                    <div style="padding:10px; border-top:1px solid rgba(255,255,255,0.05); margin-top:auto;">
-                        <div style="font-size:10px; color:var(--text-tertiary); margin-bottom:4px;">settings</div>
-                        <div style="display:flex; gap:5px;">
-                            <input id="new-username-input" placeholder="new username..." style="flex:1; background:transparent; border:1px solid rgba(255,255,255,0.1); padding:5px; color:#fff; font-size:10px; border-radius:4px;">
-                            <button id="btn-change-name" class="btn" style="width:auto; padding:0 8px; font-size:10px;" data-cursor="block"><i class="fas fa-pen"></i></button>
-                        </div>
-                    </div>
+    return `
+        <div class="chat-layout">
+            <div class="sidebar">
+                <div class="sidebar-tabs">
+                    <div id="tab-friends" class="sidebar-tab active" data-cursor="block">friends</div>
+                    <div id="tab-groups" class="sidebar-tab" data-cursor="block">groups</div>
                 </div>
                 
-                <div class="chat-main">
-                    <div id="profile-chatBox"></div>
-                    <div class="chat-input-area">
-                        <input id="msg-input" class="chat-input" placeholder="message...">
-                        <button id="msg-send" class="btn btn-primary" style="width:auto; padding:0 20px" data-cursor="block"><i class="fas fa-paper-plane"></i></button>
+                <div id="contact-list" class="user-list">
+                    <div style="padding:20px; text-align:center; color:var(--text-tertiary); font-size:12px;">loading...</div>
+                </div>
+                
+                <div style="padding:10px; border-top:1px solid rgba(255,255,255,0.05); color:var(--text-secondary); font-size:11px;">
+                    id: <span id="my-id-display" style="color:var(--accent-primary); user-select:text;">${(myProfileId || '...').toLowerCase()}</span>
+                </div>
+
+                <div style="padding:0 10px 10px 10px; display:flex; gap:5px;">
+                    <input id="add-friend-input" placeholder="add friend by id..." style="flex:1; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); padding:6px; color:#fff; font-size:11px; border-radius:4px; font-family:var(--ui-font);">
+                    <button id="btn-add-friend" class="btn btn-primary" style="width:auto; padding:0 10px;" data-cursor="block"><i class="fas fa-plus"></i></button>
+                </div>
+
+                <div style="padding:10px; border-top:1px solid rgba(255,255,255,0.05); display:flex; flex-direction:column; gap:5px">
+                    <div style="font-size:10px; color:var(--text-tertiary); margin-bottom:2px;">create group</div>
+                    <input id="grp-name" placeholder="group name" style="background:transparent; border:1px solid rgba(255,255,255,0.1); padding:5px; color:#fff; font-size:10px; border-radius:4px;">
+                    <input id="grp-mems" placeholder="members (comma sep)" style="background:transparent; border:1px solid rgba(255,255,255,0.1); padding:5px; color:#fff; font-size:10px; border-radius:4px;">
+                    <button id="btn-create-grp" class="btn" style="background:rgba(255,255,255,0.1); padding:4px; font-size:10px;" data-cursor="block">create</button>
+                </div>
+
+                <div style="padding:10px; border-top:1px solid rgba(255,255,255,0.05); margin-top:auto;">
+                    <div style="font-size:10px; color:var(--text-tertiary); margin-bottom:4px;">settings</div>
+                    <div style="display:flex; gap:5px;">
+                        <input id="new-username-input" placeholder="new username..." style="flex:1; background:transparent; border:1px solid rgba(255,255,255,0.1); padding:5px; color:#fff; font-size:10px; border-radius:4px;">
+                        <button id="btn-change-name" class="btn" style="width:auto; padding:0 8px; font-size:10px;" data-cursor="block"><i class="fas fa-pen"></i></button>
                     </div>
                 </div>
             </div>
-        `;
-    }
+            
+            <div class="chat-main">
+                <div id="profile-chatBox">
+                    <div style="height:100%; display:flex; align-items:center; justify-content:center; color:var(--text-tertiary); font-size:13px;">
+                        select a contact to start chatting
+                    </div>
+                </div>
+                <div class="chat-input-area">
+                    <input id="msg-input" class="chat-input" placeholder="message...">
+                    <button id="msg-send" class="btn btn-primary" style="width:auto; padding:0 20px" data-cursor="block"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </div>
+    `;
+}
 
 function setupProfileWindowHandlers(el) {
-        updateProfileUI(); 
+    if (!el) return;
 
-        // ... existing selectors ...
-        const tabFriends = el.querySelector('#tab-friends');
-        const tabGroups = el.querySelector('#tab-groups');
-        const btnSend = el.querySelector('#msg-send');
-        const inpMsg = el.querySelector('#msg-input');
-        const btnCreate = el.querySelector('#btn-create-grp');
-        const inpGrpName = el.querySelector('#grp-name');
-        const inpGrpMems = el.querySelector('#grp-mems');
-        const btnAddFriend = el.querySelector('#btn-add-friend');
-        const inpAddFriend = el.querySelector('#add-friend-input');
+    // Trigger UI update to populate list
+    updateProfileUI();
 
-        // NEW SELECTORS
-        const btnChangeName = el.querySelector('#btn-change-name');
-        const inpChangeName = el.querySelector('#new-username-input');
+    // --- 1. GRAB ELEMENTS ---
+    const tabFriends = el.querySelector('#tab-friends');
+    const tabGroups = el.querySelector('#tab-groups');
+    
+    const btnSend = el.querySelector('#msg-send');
+    const inpMsg = el.querySelector('#msg-input');
+    
+    const btnCreate = el.querySelector('#btn-create-grp');
+    const inpGrpName = el.querySelector('#grp-name');
+    const inpGrpMems = el.querySelector('#grp-mems');
+    
+    const btnAddFriend = el.querySelector('#btn-add-friend');
+    const inpAddFriend = el.querySelector('#add-friend-input');
+    
+    const btnChangeName = el.querySelector('#btn-change-name');
+    const inpChangeName = el.querySelector('#new-username-input');
 
-        // ... existing listeners (tab clicks, send msg, create group, add friend) ...
-        tabFriends.onclick = () => { tabFriends.classList.add('active'); tabGroups.classList.remove('active'); renderContactList(profileFriends, false); };
-        tabGroups.onclick = () => { tabGroups.classList.add('active'); tabFriends.classList.remove('active'); renderContactList(Object.values(profileGroups), true); };
+    // --- 2. ATTACH LISTENERS (With Safety Checks) ---
 
-        const send = () => {
-             const txt = inpMsg.value.trim();
-             if(!txt || !currentProfileKey) return;
-             if (profileSocket && profileSocket.connected) {
-                 if(currentProfileKey.startsWith('dm:')) {
-                     const target = currentProfileKey.split(':')[1].split('|').find(u => u !== myProfileId);
-                     profileSocket.emit('sendDM', { target, text: txt });
-                 } else {
-                     profileSocket.emit('sendGroup', { groupId: currentProfileKey.split(':')[1], text: txt });
-                 }
-             } else {
-                 renderMsg({ from: myProfileId, text: txt });
-             }
-             inpMsg.value = '';
+    // Tabs
+    if (tabFriends) {
+        tabFriends.onclick = () => { 
+            tabFriends.classList.add('active'); 
+            if(tabGroups) tabGroups.classList.remove('active'); 
+            renderContactList(profileFriends, false); 
         };
-        btnSend.onclick = send;
-        inpMsg.onkeypress = (e) => { if(e.key === 'Enter') send(); };
-
-        btnCreate.onclick = () => {
-            const name = inpGrpName.value;
-            const mems = inpGrpMems.value.split(',').map(s=>s.trim());
-            if(name && profileSocket) { mems.push(myProfileId); profileSocket.emit('createGroup', { label: name, members: mems }); }
+    }
+    if (tabGroups) {
+        tabGroups.onclick = () => { 
+            tabGroups.classList.add('active'); 
+            if(tabFriends) tabFriends.classList.remove('active'); 
+            renderContactList(Object.values(profileGroups), true); 
         };
+    }
 
-        const handleAddFriend = () => {
-            const target = inpAddFriend.value.trim();
-            if(target && profileSocket) {
-                profileSocket.emit('requestFriend', { targetUsername: target });
-                inpAddFriend.value = '';
+    // Messaging
+    const sendMsg = () => {
+        if (!inpMsg || !currentProfileKey) return;
+        const txt = inpMsg.value.trim();
+        if (!txt) return;
+
+        if (profileSocket && profileSocket.connected) {
+            if (currentProfileKey.startsWith('dm:')) {
+                // Parse DM Key: "dm:user1|user2"
+                const parts = currentProfileKey.split(':')[1].split('|');
+                const target = parts.find(u => u !== myProfileId) || parts[0]; // Fallback for self-dm
+                profileSocket.emit('sendDM', { target, text: txt });
+            } else {
+                // Group Key: "group:123"
+                const groupId = currentProfileKey.split(':')[1];
+                profileSocket.emit('sendGroup', { groupId, text: txt });
             }
-        };
-        btnAddFriend.onclick = handleAddFriend;
-        inpAddFriend.onkeypress = (e) => { if(e.key === 'Enter') handleAddFriend(); };
+        } else {
+            // Offline/Fallback mode (just echo for UI testing)
+            renderMsg({ from: myProfileId, text: txt });
+        }
+        inpMsg.value = '';
+    };
 
-        // NEW: CHANGE NAME HANDLER
-        btnChangeName.onclick = () => {
-            const newName = inpChangeName.value.trim();
-            if (newName && profileSocket) {
-                profileSocket.emit('changeUsername', { newName });
-                inpChangeName.value = '';
+    if (btnSend) btnSend.onclick = sendMsg;
+    if (inpMsg) inpMsg.onkeypress = (e) => { if (e.key === 'Enter') sendMsg(); };
+
+    // Create Group
+    if (btnCreate) {
+        btnCreate.onclick = () => {
+            const name = inpGrpName ? inpGrpName.value : '';
+            const mems = inpGrpMems ? inpGrpMems.value.split(',').map(s => s.trim()) : [];
+            if (name && profileSocket) {
+                mems.push(myProfileId);
+                profileSocket.emit('createGroup', { label: name, members: mems });
+                if(inpGrpName) inpGrpName.value = '';
+                if(inpGrpMems) inpGrpMems.value = '';
+                showToast("system", "group created");
             }
         };
     }
 
+    // Add Friend
+    const handleAddFriend = () => {
+        const target = inpAddFriend ? inpAddFriend.value.trim() : '';
+        if (target && profileSocket) {
+            profileSocket.emit('requestFriend', { targetUsername: target });
+            if(inpAddFriend) inpAddFriend.value = '';
+            showToast("system", `sent request to ${target}`);
+        }
+    };
+    if (btnAddFriend) btnAddFriend.onclick = handleAddFriend;
+    if (inpAddFriend) inpAddFriend.onkeypress = (e) => { if (e.key === 'Enter') handleAddFriend(); };
+
+    // Change Username
+    if (btnChangeName) {
+        btnChangeName.onclick = () => {
+            const newName = inpChangeName ? inpChangeName.value.trim() : '';
+            if (newName && profileSocket) {
+                profileSocket.emit('changeUsername', { newName });
+                if(inpChangeName) inpChangeName.value = '';
+            }
+        };
+    }
+}
     function updateProfileUI() {
         const idDisplay = document.getElementById('my-id-display');
         if(idDisplay) idDisplay.textContent = (myProfileId || '...').toLowerCase();
