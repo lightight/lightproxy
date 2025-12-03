@@ -1,46 +1,76 @@
-<!DOCTYPE html>
 <html lang="en">
-<head>
+  <head>
     <meta charset="UTF-8">
+    </meta>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>classroom</title> 
+    </meta>
+    <title>
+      classroom
+    </title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <script src="/scramjet/scramjet.all.js"></script>
-
-    <script>
-        self.__scramjet$config = {
-            prefix: '/scramjet/',
-            codec: {
-                encode: (str) => str,
-                decode: (str) => str
-            },
-            worker: '/sj.worker.js',
-            wispUrl: (location.protocol === "https:" ? "wss" : "ws") + "://" + location.host + "/wisp/"
+    </link>
+  </head>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@xenova/transformers@2.14.0"></script>
+  <body>
+    <script src="/scramjet/scramjet.all.js"></script> <script>
+        const SCRAMJET_CONFIG = {
+            prefix: '/service/', 
+            wispUrl: (location.protocol === "https:" ? "wss" : "ws") + "://" + location.host + "/wisp/",
+            files: {
+                wasm: '/scramjet/scramjet.wasm.wasm',
+                all: '/scramjet/scramjet.all.js',
+                sync: '/scramjet/scramjet.sync.js'
+            }
         };
-    </script>
-    
-    <script src="/profiles/socket.io/socket.io.js"></script>
-    <script src="/baremux/index.js" defer></script>
-    <script src="/epoxy/index.js" defer></script>
-    <script src="/uv/uv.bundle.js" defer></script>
-    <script src="uv.config.js" defer></script>
-    <script src="search.js"></script>
-    <script src="games.js"></script>
-<style>
-    /* --- CORE VARIABLES --- */
+
+        async function initScramjetController() {
+            if (window.scramjet) return window.scramjet;
+
+            console.log("initializing scram...");
+            
+            if (typeof $scramjetLoadController === 'undefined') {
+                console.error("Scramjet library not loaded! Check /scramjet/scramjet.all.js path.");
+                return null;
+            }
+
+            const { ScramjetController } = $scramjetLoadController();
+            
+            window.scramjet = new ScramjetController(SCRAMJET_CONFIG);
+            await window.scramjet.init();
+            
+            console.log("scrams ready");
+            return window.scramjet;
+        }
+
+        window.getProxyUrl = function(targetUrl) {
+            const type = localStorage.getItem('light-proxy-transport') || 'uv';
+            
+            if (type === 'scramjet') {
+                if (window.scramjet) {
+                    return window.scramjet.encodeUrl(targetUrl);
+                }
+                return SCRAMJET_CONFIG.prefix + encodeURIComponent(targetUrl);
+            } else {
+                if (window.__uv$config) {
+                    return __uv$config.prefix + __uv$config.encodeUrl(targetUrl);
+                }
+                return '/service/' + encodeURIComponent(targetUrl);
+            }
+        }
+
+        initScramjetController();
+    </script> <script src="/profiles/socket.io/socket.io.js"></script> <script src="/baremux/index.js" defer></script> <script src="/epoxy/index.js" defer></script> <script src="/uv/uv.bundle.js" defer></script> <script src="uv.config.js" defer></script> <script src="search.js"></script> <script src="games.js"></script> <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Press+Start+2P&display=swap');
 
-    :root {
-        /* Default (Void Dark) */
+:root {
         --bg-dark: #05050a;
         --nav-bg: #0a0a0f;
         --text-primary: #ffffff;
         --text-secondary: #94a3b8;
         --text-tertiary: #64748b;
-        --accent-primary: #0ea5e9; 
         
-        /* Customizable Metrics */
+        --accent-primary: #a3a3a3; 
+        
         --radius-sm: 6px;
         --radius-md: 12px;
         --radius-lg: 20px;
@@ -48,14 +78,11 @@
         --nav-opacity: 1;      
         --ui-font: 'Inter', sans-serif;
 
-        /* UI Metrics */
         --bar-height: 50px;
         --tab-bar-height: 40px;
         --wallpaper: url('Wallpapers/5.png');
     }
 
-    /* --- THEME OVERRIDES --- */
-    /* These classes must be on BODY */
     body.theme-starlight {
         --bg-dark: #ffffff;
         --nav-bg: #f3f4f6;
@@ -86,7 +113,6 @@
         --accent-primary: #ffffff;
     }
 
-    /* --- RESET & BASE --- */
     * { box-sizing: border-box; margin: 0; padding: 0; outline: none; text-transform: lowercase; }
     
     body {
@@ -99,21 +125,14 @@
         flex-direction: column;
         transition: background-color 0.3s, color 0.3s;
     }
-    
-    /* --- CURSOR LOGIC --- */
-    
+ /* this is where i stopped pressing enter */
 
-
-
-
-    /* Bottom Nav Modifier */
     body.layout-bottom { flex-direction: column-reverse; }
     body.layout-bottom #app-bar { border-bottom: none; border-top: 1px solid rgba(255, 255, 255, 0.08); }
     body.layout-bottom #dynamic-island { bottom: 70px; top: auto; transform: scale(0.9) translateY(20px); }
     body.layout-bottom #dynamic-island.active { transform: scale(1) translateY(0); }
     body.layout-bottom #browser-tab-bar { border-bottom: none; border-top: 1px solid rgba(255,255,255,0.05); }
 
-    /* --- SPECIAL EFFECTS OVERLAYS --- */
     #effects-overlay { position: fixed; inset: 0; pointer-events: none; z-index: 9997; overflow: hidden; }
     .falling-item { position: absolute; top: -50px; animation: fall linear forwards; }
     @keyframes fall { to { transform: translateY(110vh) rotate(360deg); } }
@@ -124,19 +143,18 @@
     @keyframes flash { 0% { opacity: 0.4; } 100% { opacity: 1; } }
 
     #cloak-overlay { position: fixed; inset: 0; z-index: 9000; background-size: cover; background-position: center; background-color: #000; }
-    #void-cloak-overlay { position: fixed; inset: 0; z-index: 9998; background-color: #000; background-size: cover; background-position: center; background-repeat: no-repeat; display: none; pointer-events: none; }
+    #light-cloak-overlay { position: fixed; inset: 0; z-index: 9998; background-color: #000; background-size: cover; background-position: center; background-repeat: no-repeat; display: none; pointer-events: none; }
     #click-to-enter { position: fixed; inset: 0; z-index: 9999; background: #000 url('Wallpapers/5.png') center/cover no-repeat; display: flex; align-items: center; justify-content: center; flex-direction: column; cursor: pointer; }
     #click-to-enter::before { content: ''; position: absolute; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(10px); }
     .enter-text { position: relative; z-index: 10; font-size: 24px; font-weight: 300; letter-spacing: 2px; color: rgba(255,255,255,0.8); animation: pulse 2s infinite; }
     @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
 
-    /* Scrollbars */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.2); border-radius: 10px; }
     ::-webkit-scrollbar-thumb:hover { background: rgba(128,128,128,0.4); }
 
-    /* --- APP BAR --- */
+    /* --- apps --- */
     #app-bar { height: var(--bar-height); background: var(--nav-bg); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255, 255, 255, 0.08); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; z-index: 1000; flex-shrink: 0; transition: background 0.3s; }
     #app-bar-apps { display: flex; gap: 8px; align-items: center; }
     .app-icon { width: 32px; height: 32px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; color: var(--text-secondary); font-size: 14px; transition: all 0.2s ease; position: relative; z-index: 2000; }
@@ -147,13 +165,13 @@
     .hover-effect { transition: color 0.2s; }
     .hover-effect:hover { color: var(--text-primary); }
 
-    /* --- TOAST --- */
-    #void-toast { position: fixed; bottom: 20px; right: 20px; background: rgba(20, 20, 25, 0.9); border: 1px solid var(--accent-primary); border-radius: var(--radius-md); padding: 16px; color: #fff; z-index: 10000; display: flex; align-items: center; gap: 12px; transform: translateY(100px); opacity: 0; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 10px 30px rgba(0,0,0,0.5); pointer-events: none; max-width: 300px; }
-    #void-toast.visible { transform: translateY(0); opacity: 1; pointer-events: all; }
+    /* --- bread toast --- */
+    #light-toast { position: fixed; bottom: 20px; right: 20px; background: rgba(20, 20, 25, 0.9); border: 1px solid var(--accent-primary); border-radius: var(--radius-md); padding: 16px; color: #fff; z-index: 10000; display: flex; align-items: center; gap: 12px; transform: translateY(100px); opacity: 0; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 10px 30px rgba(0,0,0,0.5); pointer-events: none; max-width: 300px; }
+    #light-toast.visible { transform: translateY(0); opacity: 1; pointer-events: all; }
     .toast-icon { font-size: 20px; color: var(--accent-primary); }
     .toast-content h4 { font-size: 14px; margin-bottom: 4px; color: var(--accent-primary); font-weight: 700; }
     .toast-content p { font-size: 13px; color: #ccc; margin: 0; line-height: 1.4; }
-/* --- WARNING MODAL --- */
+/* --- warming --- */
     #exit-modal { position: fixed; inset: 0; z-index: 20000; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: 0.2s; }
     #exit-modal.active { opacity: 1; pointer-events: all; }
     .modal-box { width: 400px; background: var(--nav-bg); border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius-md); padding: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); transform: scale(0.95); transition: 0.2s; }
@@ -161,9 +179,7 @@
     .modal-title { font-size: 18px; font-weight: 700; color: #ef4444; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
     .modal-text { font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 15px; }
     
-    /* UPDATED: Buttons are now spread apart */
     .modal-btns { display: flex; gap: 10px; justify-content: space-between; margin-top: 20px; width: 100%; }
-    /* --- MODALS (Generic) --- */
     .modal-wrapper { position: fixed; inset: 0; z-index: 20000; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: 0.2s; }
     .modal-wrapper.active { opacity: 1; pointer-events: all; }
     
@@ -176,11 +192,9 @@
     .modal-text { font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 15px; }
     .modal-btns { display: flex; gap: 10px; justify-content: flex-end; margin-top: auto; }
     
-    /* Re-add the disabled button style for the warning modal */
     button:disabled { opacity: 0.5; cursor: not-allowed !important; filter: grayscale(1); }
-    /* ADDED: Disabled button style */
     button:disabled { opacity: 0.5; cursor: not-allowed !important; filter: grayscale(1); }
-/* --- BROWSER --- */
+/* --- browser --- */
     #browser-container { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--bg-dark); transition: background 0.3s; }
     #browser-tab-bar { height: var(--tab-bar-height); background: var(--nav-bg); display: flex; align-items: center; padding: 0 8px; gap: 4px; overflow-x: auto; border-bottom: 1px solid rgba(255, 255, 255, 0.05); flex-shrink: 0; transition: background 0.3s; z-index: 2000; }
     .tab-item { max-width: 220px; min-width: 140px; height: 32px; background: transparent; border-radius: var(--radius-sm) var(--radius-sm) 0 0; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; font-size: 12px; color: var(--text-secondary); border-bottom: 2px solid transparent; transition: background 0.2s; position: relative; cursor: pointer; }
@@ -192,15 +206,13 @@
     #new-tab-button { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 4px; color: var(--text-secondary); z-index: 2000; }
     #new-tab-button:hover { background: rgba(255,255,255,0.05); color: var(--accent-primary); }
     
-    /* UPDATED: Added overflow: hidden to lock the viewport */
     #browser-content-area { flex: 1; position: relative; background: var(--bg-dark); overflow: hidden; }
     
-    /* UPDATED: Relative positioning for absolute children */
     .tab-content { width: 100%; height: 100%; display: none; position: relative; }
     .tab-content.active { display: block; }
     iframe { width: 100%; height: 100%; border: none; display: block; background: #fff; }
 
-    /* --- NEW TAB --- */
+    /* --- tabs --- */
     .new-tab-body { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background-image: var(--wallpaper); background-size: cover; background-position: center; position: relative; }
     .new-tab-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(5px); z-index: 0; }
     .nt-content { position: relative; z-index: 1; width: 100%; max-width: 600px; text-align: center; }
@@ -210,8 +222,7 @@
     .nt-input:focus { background: rgba(20, 20, 25, 0.9); border-color: var(--accent-primary); box-shadow: 0 8px 32px rgba(14, 165, 233, 0.2); }
     .nt-icon { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); color: rgba(255,255,255,0.6); }
 
-    /* --- SETTINGS PAGE (UPDATED) --- */
-    /* This now uses absolute positioning to guarantee scrolling */
+    /* --- im too lazy to refind the code so id rather just retype it my eyes hurt --- */
     .content-page { 
         position: absolute; 
         inset: 0; 
@@ -250,19 +261,18 @@
     input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; background: var(--accent-primary); border-radius: 50%; cursor: pointer; transition: transform 0.1s; }
     input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 
-    /* --- PROFILES --- */
-/* --- PROFILES REPAIR --- */
+    /* --- profiles --- */
     .chat-layout { 
         display: flex; 
         width: 100%; 
         height: 100%; 
         background: var(--nav-bg); 
-        overflow: hidden; /* Prevents scrollbar issues */
+        overflow: hidden;
     }
     
     .sidebar { 
         width: 250px; 
-        min-width: 250px; /* Prevent crushing */
+        min-width: 250px;
         background: rgba(255,255,255,0.03); 
         display: flex; 
         flex-direction: column; 
@@ -311,7 +321,6 @@
         border-color: rgba(14, 165, 233, 0.3);
     }
 
-    /* CHAT BOX */
     #profile-chatBox { 
         flex: 1; 
         overflow-y: auto; 
@@ -320,14 +329,13 @@
         flex-direction: column; 
         gap: 8px; 
     }
-/* --- UPDATED CHAT BUBBLES --- */
     .msg-bubble { 
         padding: 8px 12px; 
         border-radius: var(--radius-md); 
         max-width: 70%; 
         font-size: 13px; 
         line-height: 1.4;
-        display: flex;         /* Stack text and name */
+        display: flex;  
         flex-direction: column; 
         gap: 2px;
     }
@@ -335,17 +343,15 @@
     .msg-bubble.me { background: var(--accent-primary); color: #fff; align-self: flex-end; }
     .msg-bubble.them { background: rgba(255,255,255,0.08); color: var(--text-primary); align-self: flex-start; }
 
-    /* The Message Text */
     .msg-text {
         word-wrap: break-word;
     }
 
-    /* The Username/Footer */
     .msg-footer {
         font-size: 10px;
-        opacity: 0.6;       /* Make it less bright */
+        opacity: 0.6;
         margin-top: 2px;
-        align-self: flex-end; /* Always tuck it to the bottom-right of the bubble */
+        align-self: flex-end;
         font-weight: 500;
     }
 .chat-input-area { 
@@ -366,12 +372,10 @@
     }
     .chat-input:focus { border-color: var(--accent-primary); }
 
-    /* --- PANELS --- */
     .float-panel { position: absolute; top: 60px; right: 20px; width: 300px; background: #0f0f12; border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius-md); padding: 16px; z-index: 2000; display: none; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
     .layout-bottom .float-panel { top: auto; bottom: 60px; }
     .hidden { display: none !important; }
 
-    /* --- DYNAMIC ISLAND --- */
     #dynamic-island { position: fixed; top: 60px; right: 20px; width: 260px; background: #000; border-radius: 20px; padding: 12px; z-index: 99999; box-shadow: 0 10px 40px rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1); transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); opacity: 0; transform: scale(0.9) translateY(-20px); pointer-events: none; display: flex; flex-direction: column; gap: 8px; }
     #dynamic-island.active { opacity: 1; transform: scale(1) translateY(0); pointer-events: all; }
     .di-wrapper { display: flex; align-items: center; gap: 10px; cursor: pointer; }
@@ -384,7 +388,6 @@
     .di-btns button:hover { background: #fff; color: #000; }
     .di-bar-bg { width: 100%; height: 3px; background: rgba(255,255,255,0.2); border-radius: 2px; overflow: hidden; }
     #di-bar-fill { height: 100%; background: var(--accent-primary, #0ea5e9); width: 0%; transition: width 0.2s linear; }
-    /* Friend Request Toast */
     .request-toast {
         position: fixed; top: 80px; right: 20px; 
         background: rgba(20, 20, 25, 0.95); 
@@ -405,45 +408,34 @@
     .req-accept { background:var(--accent-primary); color:#fff; }
     .req-decline { background:rgba(255,255,255,0.1); color:#fff; }
     .req-btn:hover { filter:brightness(1.1); }
-    /* --- TOS OVERRIDES --- */
-    /* Force normal text capitalization for the legal modal */
     #tos-modal, #tos-modal * {
         text-transform: none !important;
     }
     
-    /* Keep the "type I AGREE" input uppercase though, for effect */
     #tos-consent-input {
         text-transform: uppercase !important;
     }
-    /* --- TOS CURSOR FIX --- */
-    /* 1. Force the native cursor to reappear inside the modal */
     #tos-modal, 
     #tos-modal * {
         cursor: auto !important;
     }
 
-    /* 2. Give the buttons the 'hand' cursor */
     #tos-modal button {
         cursor: pointer !important;
     }
 
-    /* 3. Give the text box the 'typing' cursor */
     #tos-modal input, 
     #tos-modal .modal-text {
         cursor: text !important;
     }
 
-    /* 4. Ensure the modal is always on top of custom cursors */
     #tos-modal {
         z-index: 999999 !important;
     }
-/* ---------- 10× CLEANER UI ---------- */
 
-/* 1. Kill visual noise */
 * { text-transform: lowercase !important; font-weight: 400; }
 body { background: var(--bg-dark) var(--wallpaper) center/cover no-repeat; }
 
-/* 2. Big, breathing panels */
 .content-page { padding: 24px 32px 120px; }
 .grid-layout { gap: 24px; }
 .card {
@@ -455,14 +447,13 @@ body { background: var(--bg-dark) var(--wallpaper) center/cover no-repeat; }
 }
 .card:hover { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.12); }
 
-/* 3. One-click accent */
 :root { --accent-primary: #0ea5e9; }
+body.light-dark { --accent-primary: #a3a3a3; }
 body.theme-starlight { --accent-primary: #0284c7; }
 body.theme-thanksgiving { --accent-primary: #d97706; }
 body.theme-christmas { --accent-primary: #ef4444; }
 body.theme-67 { --accent-primary: #fff; }
 
-/* 4. Slicker tabs */
 #browser-tab-bar { height: 44px; padding: 0 12px; }
 .tab-item {
     max-width: 180px;
@@ -475,12 +466,10 @@ body.theme-67 { --accent-primary: #fff; }
 }
 .tab-item.active { border-color: var(--accent-primary); color: var(--text-primary); font-weight: 500; }
 
-/* 5. New-tab hero */
 .nt-logo { font-size: 56px; letter-spacing: -3px; margin-bottom: 24px; }
 .nt-input { height: 52px; font-size: 17px; padding-left: 48px; }
 .nt-icon { left: 18px; font-size: 16px; }
 
-/* 6. Buttons that feel like buttons */
 .btn {
     border-radius: var(--radius-md);
     padding: 10px 14px;
@@ -493,10 +482,8 @@ body.theme-67 { --accent-primary: #fff; }
 .btn-danger { background: rgba(239,68,68,.12); color: #f87171; border: 1px solid rgba(239,68,68,.2); }
 .btn-danger:hover { background: rgba(239,68,68,.2); }
 
-/* 7. Settings cards auto-column */
 .grid-layout { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
 
-/* 8. Friend list badges */
 .user-item { position: relative; }
 .user-item.active::before {
     content: "";
@@ -507,241 +494,526 @@ body.theme-67 { --accent-primary: #fff; }
     border-radius: 0 4px 4px 0;
 }
 
-/* 9. Micro-shadows for depth */
 #app-bar, .card, .float-panel, .modal-box {
     box-shadow: 0 4px 24px rgba(0,0,0,.25);
 }
 
-/* 10. Smooth scroll + slim bars */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 4px; }
 
-/* 11. Keep island tiny */
 #dynamic-island { width: 240px; padding: 10px; border-radius: 16px; }
 .di-wrapper { gap: 8px; }
 #di-img { width: 36px; height: 36px; }
 
-/* 12. Exit modal bigger type */
 #exit-modal .modal-text { font-size: 14px; line-height: 1.5; }
-</style>
-</style>
-<style id="custom-css-block"></style>
-</head>
-<body>
+.nt-bookmarks {
+    display: flex; 
+    gap: 24px; 
+    margin-top: 40px; 
+    justify-content: center; 
+    flex-wrap: wrap; 
+    position: relative; 
+    z-index: 2;
+    min-height: 150px; 
+    width: 80%; 
+    margin-left: auto; 
+    margin-right: auto;
+    border-radius: var(--radius-md);
+    transition: background 0.2s;
+}
 
-    <div id="effects-overlay"></div>
-    <div id="cloak-overlay" class="hidden"></div>
-    <div id="void-cloak-overlay"></div>
+.nt-bookmarks:hover {
+    background: rgba(255,255,255,0.02);
+}
 
+.nt-bookmarks:empty::before {
+    content: "right click here to add bookmark";
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100px;
+    color: var(--text-tertiary);
+    font-size: 13px;
+    font-style: italic;
+    border: 2px dashed rgba(255,255,255,0.1);
+    border-radius: var(--radius-md);
+}
+
+.nt-bookmark {
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    gap: 12px;
+    cursor: pointer; 
+    transition: all 0.2s ease;
+    width: 80px;
+}
+
+.nt-bm-icon {
+    width: 64px; 
+    height: 64px; 
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: var(--radius-lg);
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    font-size: 26px; 
+    color: var(--text-secondary); 
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    backdrop-filter: blur(10px);
+}
+
+.nt-bookmark:hover .nt-bm-icon { 
+    background: rgba(255,255,255,0.15); 
+    color: var(--accent-primary); 
+    transform: translateY(-8px) scale(1.05);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+    border-color: var(--accent-primary);
+}
+
+.nt-bm-label { 
+    font-size: 12px; 
+    font-weight: 500; 
+    color: var(--text-tertiary); 
+    transition: 0.2s; 
+}
+
+.nt-bookmark:hover .nt-bm-label { 
+    color: var(--text-primary); 
+}
+</style> <style id="custom-css-block"></style>
+    <div id="effects-overlay">
+    </div>
+    <div id="cloak-overlay" class="hidden">
+    </div>
+    <div id="light-cloak-overlay">
+    </div>
     <div id="click-to-enter">
-        <div class="enter-text">click to enter lightlink</div>
+      <div class="enter-text">
+        click to enter lightlink
+      </div>
     </div>
-
-    <div id="void-toast">
-        <div class="toast-icon"><i class="fas fa-bell"></i></div>
-        <div class="toast-content">
-            <h4 id="toast-title">notification</h4>
-            <p id="toast-msg">new message received.</p>
+    <div id="light-toast">
+      <div class="toast-icon">
+        <i class="fas fa-bell">
+        </i>
+      </div>
+      <div class="toast-content">
+        <h4 id="toast-title">
+          notification
+        </h4>
+        <p id="toast-msg">
+          new message received.
+        </p>
+      </div>
+    </div>
+    <div id="exit-modal">
+      <div class="modal-box">
+        <div class="modal-title">
+          <i class="fas fa-exclamation-triangle">
+          </i>
+          warning
         </div>
-    </div>
-<div id="exit-modal">
-        <div class="modal-box">
-            <div class="modal-title"><i class="fas fa-exclamation-triangle"></i> warning</div>
-            <div class="modal-text">
-                this will redirect you to <span id="exit-url" style="color:var(--accent-primary)"></span> in a different tab.
-                <br><br>
-                <span style="color:#ef4444; font-weight:700;">it is NOT recommended</span> to do this on a <span style="color:#ef4444; font-weight:700;">school chromebook</span> as these links are <span style="color:#ef4444; font-weight:700;">not proxied.</span>
-            </div>
-            <div class="modal-btns">
-                <button class="btn" onclick="closeExitModal()" data-cursor="block">cancel</button>
-                <button class="btn btn-danger" id="confirm-exit-btn" style="width:auto" data-cursor="block">proceed anyway</button>
-            </div>
+        <div class="modal-text">
+          this will redirect you to
+          <span id="exit-url" style="color:var(--accent-primary)">
+          </span>
+          in a different tab.
+          <br>
+          </br>
+          <br>
+          </br>
+          <span style="color:#ef4444; font-weight:700;">
+            it is NOT recommended
+          </span>
+          to do this on a
+          <span style="color:#ef4444; font-weight:700;">
+            school chromebook
+          </span>
+          as these links are
+          <span style="color:#ef4444; font-weight:700;">
+            not proxied.
+          </span>
         </div>
+        <div class="modal-btns">
+          <button class="btn" onclick="closeExitModal()" data-cursor="block">
+            cancel
+          </button>
+          <button class="btn btn-danger" id="confirm-exit-btn" style="width:auto" data-cursor="block">
+            proceed anyway
+          </button>
+        </div>
+      </div>
     </div>
-<div id="tos-modal" class="modal-wrapper">
-    <div class="modal-box" style="width: 500px;">
-        <div class="modal-title"><i class="fas fa-file-contract"></i> Terms of Service Agreement</div>
-        
+    <div id="tos-modal" class="modal-wrapper">
+      <div class="modal-box" style="width: 500px;">
+        <div class="modal-title">
+          <i class="fas fa-file-contract">
+          </i>
+          Terms of Service Agreement
+        </div>
         <div class="modal-text" style="height: 350px; overflow-y: auto; background:rgba(0,0,0,0.2); padding:10px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">
-            <h4 style="color:#fff; margin-bottom:5px;">1. Eligibility & Age Restriction</h4>
-            <p>You must be at least 13 years of age to use this Service. If you are under 18, you represent that you have your parent or guardian's permission to use the Service. Users under 13 are strictly prohibited.</p>
-
-            <h4 style="color:#fff; margin-top:15px; margin-bottom:5px;">2. Educational & Corporate Use</h4>
-            <p>You acknowledge that using this Service to bypass network security filters, firewalls, or content restrictions on a network you do not own (e.g., a school or workplace) is done strictly at your own risk. The developer of LightLink assumes <strong>no responsibility</strong> for disciplinary actions, suspensions, or legal consequences resulting from your violation of your institution's Acceptable Use Policy (AUP).</p>
-
-            <h4 style="color:#fff; margin-top:15px; margin-bottom:5px;">3. Prohibited Conduct</h4>
-            <p>You agree NOT to use the Service for:</p>
-            <ul style="margin-left: 20px; list-style-type: disc; margin-top: 5px; opacity: 0.8;">
-                <li>Accessing, distributing, or promoting illegal content.</li>
-                <li>Cyberbullying, harassment, or hate speech.</li>
-                <li>Distribution of malware, viruses, or destructive code.</li>
-                <li>Attempts to crash, DDoS, or exploit the Service infrastructure.</li>
-            </ul>
-
-            <h4 style="color:#fff; margin-top:15px; margin-bottom:5px;">4. Disclaimer of Warranties</h4>
-            <p>The Service is provided on an "AS IS" and "AS AVAILABLE" basis. The developer makes no representations or warranties of any kind, express or implied, as to the operation of the Service. You expressly agree that your use of the Service is at your sole risk.</p>
-
-            <h4 style="color:#fff; margin-top:15px; margin-bottom:5px;">5. Limitation of Liability</h4>
-            <p>In no event shall the developer be liable for any direct, indirect, incidental, special, or consequential damages arising out of or in any way connected with the use of this Service or with the delay or inability to use the Service.</p>
-
-            <h4 style="color:#fff; margin-top:15px; margin-bottom:5px;">6. Indemnification</h4>
-            <p>You agree to indemnify and hold harmless the developer from any claim or demand, including reasonable attorneys' fees, made by any third party due to or arising out of your breach of these Terms or your violation of any law or the rights of a third party.</p>
-
-            <br>
-            <p style="font-size:11px; color:#666;">Last Updated: 11/30/2025</p>
+          <h4 style="color:#fff; margin-bottom:5px;">
+            1. Eligibility & Age Restriction
+          </h4>
+          <p>
+            You must be at least 13 years of age to use this Service. If you are under 18, you represent that you have your parent or guardian's permission to use the Service. Users under 13 are strictly prohibited.
+          </p>
+          <h4 style="color:#fff; margin-top:15px; margin-bottom:5px;">
+            2. Educational & Corporate Use
+          </h4>
+          <p>
+            You acknowledge that using this Service to bypass network security filters, firewalls, or content restrictions on a network you do not own (e.g., a school or workplace) is done strictly at your own risk. The developer of LightLink assumes
+            <strong>
+              no responsibility
+            </strong>
+            for disciplinary actions, suspensions, or legal consequences resulting from your violation of your institution's Acceptable Use Policy (AUP).
+          </p>
+          <h4 style="color:#fff; margin-top:15px; margin-bottom:5px;">
+            3. Prohibited Conduct
+          </h4>
+          <p>
+            You agree NOT to use the Service for:
+          </p>
+          <ul style="margin-left: 20px; list-style-type: disc; margin-top: 5px; opacity: 0.8;">
+            <li>
+              Accessing, distributing, or promoting illegal content.
+            </li>
+            <li>
+              Cyberbullying, harassment, or hate speech.
+            </li>
+            <li>
+              Distribution of malware, viruses, or destructive code.
+            </li>
+            <li>
+              Attempts to crash, DDoS, or exploit the Service infrastructure.
+            </li>
+          </ul>
+          <h4 style="color:#fff; margin-top:15px; margin-bottom:5px;">
+            4. Disclaimer of Warranties
+          </h4>
+          <p>
+            The Service is provided on an "AS IS" and "AS AVAILABLE" basis. The developer makes no representations or warranties of any kind, express or implied, as to the operation of the Service. You expressly agree that your use of the Service is at your sole risk.
+          </p>
+          <h4 style="color:#fff; margin-top:15px; margin-bottom:5px;">
+            5. Limitation of Liability
+          </h4>
+          <p>
+            In no event shall the developer be liable for any direct, indirect, incidental, special, or consequential damages arising out of or in any way connected with the use of this Service or with the delay or inability to use the Service.
+          </p>
+          <h4 style="color:#fff; margin-top:15px; margin-bottom:5px;">
+            6. Indemnification
+          </h4>
+          <p>
+            You agree to indemnify and hold harmless the developer from any claim or demand, including reasonable attorneys' fees, made by any third party due to or arising out of your breach of these Terms or your violation of any law or the rights of a third party.
+          </p>
+          <br>
+          </br>
+          <p style="font-size:11px; color:#666;">
+            Last Updated: 11/30/2025
+          </p>
         </div>
-        
         <div style="margin-top:15px; display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.05); padding:10px; border-radius:4px;">
-            <input type="checkbox" id="tos-age-check" onchange="checkTOSInput()" style="width:16px; height:16px; cursor:pointer; accent-color:var(--accent-primary);">
-            <label for="tos-age-check" style="font-size:12px; color:#ddd; cursor:pointer;">I confirm I am at least 13 years old (or have parental permission).</label>
+          <input type="checkbox" id="tos-age-check" onchange="checkTOSInput()" style="width:16px; height:16px; cursor:pointer; accent-color:var(--accent-primary);">
+          </input>
+          <label for="tos-age-check" style="font-size:12px; color:#ddd; cursor:pointer;">
+            I confirm I am at least 13 years old (or have parental permission).
+          </label>
         </div>
-
         <input type="text" id="tos-consent-input" placeholder="TYPE 'I AGREE' HERE..." onkeyup="checkTOSInput()" style="width:100%; padding:10px; margin-top:10px; margin-bottom:15px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.2); color:#fff; border-radius:4px; font-family:var(--ui-font);">
-        
+        </input>
         <div class="modal-btns" style="justify-content: space-between;">
-            <button class="btn btn-danger" onclick="disagreeTOS()" style="width:auto" data-cursor="block">Decline</button>
-            <button id="btn-tos-agree" class="btn btn-primary" onclick="agreeTOS()" style="width:auto; opacity:0.5; pointer-events:none;" disabled data-cursor="block">Accept & Enter</button>
+          <button class="btn btn-danger" onclick="disagreeTOS()" style="width:auto" data-cursor="block">
+            Decline
+          </button>
+          <button id="btn-tos-agree" class="btn btn-primary" onclick="agreeTOS()" style="width:auto; opacity:0.5; pointer-events:none;" disabled="" data-cursor="block">
+            Accept & Enter
+          </button>
         </div>
+      </div>
     </div>
-</div>
-<div id="games-disclaimer-modal" class="modal-wrapper">
-    <div class="modal-box" style="width: 450px;">
-        <div class="modal-title"><i class="fas fa-gavel"></i> legal disclaimer</div>
+    <div id="games-disclaimer-modal" class="modal-wrapper">
+      <div class="modal-box" style="width: 450px;">
+        <div class="modal-title">
+          <i class="fas fa-gavel">
+          </i>
+          legal disclaimer
+        </div>
         <div class="modal-text">
-            <p>you are about to access the games library.</p>
-            <br>
-            <ul style="margin-left: 20px; list-style-type: disc; opacity: 0.8;">
-                <li>these games are <strong>not hosted</strong> by lightlink.</li>
-                <li>content is provided by third-party repositories (gn-math, selenite, etc).</li>
-                <li>lightlink acts solely as a proxy utility.</li>
-            </ul>
-            <br>
-            <p style="font-size:12px; color:#aaa;">if you are a copyright holder, please contact the respective game provider directly to file a dmca request.</p>
+          <p>
+            you are about to access the games library.
+          </p>
+          <br>
+          </br>
+          <ul style="margin-left: 20px; list-style-type: disc; opacity: 0.8;">
+            <li>
+              these games are
+              <strong>
+                not hosted
+              </strong>
+              by lightlink.
+            </li>
+            <li>
+              content is provided by third-party repositories (gn-math, selenite, etc).
+            </li>
+            <li>
+              lightlink acts solely as a proxy utility.
+            </li>
+          </ul>
+          <br>
+          </br>
+          <p style="font-size:12px; color:#aaa;">
+            if you are a copyright holder, please contact the respective game provider directly to file a dmca request.
+          </p>
         </div>
         <div class="modal-btns">
-            <button class="btn btn-primary" onclick="acceptGamesDisclaimer()" style="width:100%" data-cursor="block">i understand & proceed</button>
+          <button class="btn btn-primary" onclick="acceptGamesDisclaimer()" style="width:100%" data-cursor="block">
+            i understand & proceed
+          </button>
         </div>
+      </div>
     </div>
-</div>
-<div id="changelog-modal" class="modal-wrapper">
-    <div class="modal-box" style="width: 450px;">
-        <div class="modal-title"><i class="fas fa-rocket"></i> lightlink beta 1.2</div>
+    <div id="changelog-modal" class="modal-wrapper">
+      <div class="modal-box" style="width: 450px;">
+        <div class="modal-title">
+          <i class="fas fa-rocket">
+          </i>
+          lightlink beta 1.2 (quarter zip update)
+        </div>
         <div class="modal-text">
-            <p>you are now updated. here is what changed:</p>
-            <ul style="margin-left: 20px; list-style-type: disc; margin-top: 10px; opacity: 0.8;">
-                <li><strong>added filters:</strong> good proxy now.</li>
-                <li><strong>games:</strong> now play games with the games app. change your provider in settings. (inspired by waves)</li>
-                <li><strong>added scramjet:</strong> cool proxy that works with a whole buncha more apps.</li>
-                <li><strong>performance:</strong> general improvements to make your experience better.</li>
-                <li><strong>removed cursors:</strong> cursors have been removed due to way too many bugs. they will come back when they aren't as buggy.</li>
-                <li><strong>linkchat?:</strong> linkchat has officially been cancelled due to it 1. taking too long, and 2. it was hard to make it so privacy focused and tailored to everyone.</li>
-            </ul>
+          <p>
+            ur up to date boiiii. here is what changed:
+          </p>
+          <ul style="margin-left: 20px; list-style-type: disc; margin-top: 10px; opacity: 0.8;">
+            <li>
+              <strong>
+                added proxy filters:
+              </strong>
+              no more searching bad things.
+            </li>
+            <li>
+              <strong>
+                games:
+              </strong>
+              now play games with the games app. (inspired by waves)
+            </li>
+            <li>
+              <strong>
+                added scramjet:
+              </strong>
+              cool proxy that works with a whole buncha more apps. (expiremental, use at own risk, switch back to uv if needed in settings)
+            </li>
+            <li>
+              <strong>
+                performance:
+              </strong>
+              general improvements to make your experience better.
+            </li>
+            <li>
+              <strong>
+                removed cursors:
+              </strong>
+              cursors have been removed due to way too many bugs. they will come back when they aren't as buggy.
+            </li>
+            <li>
+              <strong>
+                linkchat?:
+              </strong>
+              linkchat has officially been cancelled. sorry :/ 
+            </li>
+            <li>
+              <strong>
+                panic key: 
+              </strong>
+              the panic key is a new feature where you press a desired key on your keyboard and it redirects you to that site.
+            </li>
+            <li>
+              <strong>
+                removed advanced css & volume: 
+              </strong>
+              useless features and never worked anyways
+            </li>
+            <li>
+              <strong>
+                theme maker: 
+              </strong>
+              you can now make up your own themes with the power of ai.
+            </li>
+            <li>
+              <strong>
+                and much much more... 
+              </strong>              
+            </li>
+          </ul>
         </div>
         <div class="modal-btns">
-            <button class="btn btn-primary" onclick="closeChangelog()" style="width:100%" data-cursor="block">fiyuhhhhhhhhhhhhhhhhhhhhhhh</button>
+          <button class="btn btn-primary" onclick="closeChangelog()" style="width:100%" data-cursor="block">
+            i'd rather wear a quarter zip and drink matcha
+          </button>
         </div>
+      </div>
     </div>
-</div>
+    <div id="bookmark-modal" class="modal-wrapper">
+      <div class="modal-box">
+        <div class="modal-title">
+          <i class="fas fa-edit">
+          </i>
+          edit bookmark
+        </div>
+        <label style="font-size:12px; color:var(--text-tertiary);">
+          title
+        </label>
+        <input id="bm-edit-title" class="setting-input" type="text" placeholder="e.g. Discord">
+        </input>
+        <label style="font-size:12px; color:var(--text-tertiary);">
+          url (include https://)
+        </label>
+        <input id="bm-edit-url" class="setting-input" type="text" placeholder="e.g. https://discord.com">
+        </input>
+        <label style="font-size:12px; color:var(--text-tertiary);">
+          icon class (font awesome)
+        </label>
+        <input id="bm-edit-icon" class="setting-input" type="text" placeholder="e.g. fab fa-discord">
+        </input>
+        <div class="modal-btns">
+          <button class="btn btn-danger" onclick="deleteBookmark()" style="width:auto; margin-right:auto;">
+            delete
+          </button>
+          <button class="btn" onclick="closeBookmarkModal()">
+            cancel
+          </button>
+          <button class="btn btn-primary" onclick="saveBookmark()">
+            save changes
+          </button>
+        </div>
+      </div>
+    </div>
     <div id="dynamic-island" class="hidden">
-        <div class="di-wrapper" onclick="activateMusicTab()">
-            <img id="di-img" src="" onerror="this.style.display='none'">
-            <div class="di-text">
-                <div id="di-title">not playing</div>
-                <div id="di-artist"></div>
-            </div>
-            <div class="di-btns">
-                <button onclick="event.stopPropagation(); sendMusicCmd('prev')"><i class="fas fa-step-backward"></i></button>
-                <button onclick="event.stopPropagation(); sendMusicCmd('toggle')" id="di-toggle"><i class="fas fa-play"></i></button>
-                <button onclick="event.stopPropagation(); sendMusicCmd('next')"><i class="fas fa-step-forward"></i></button>
-            </div>
+      <div class="di-wrapper" onclick="activateMusicTab()">
+        <img id="di-img" src="" onerror="this.style.display='none'">
+        </img>
+        <div class="di-text">
+          <div id="di-title">
+            not playing
+          </div>
+          <div id="di-artist">
+          </div>
         </div>
-        <div class="di-bar-bg"><div id="di-bar-fill"></div></div>
+        <div class="di-btns">
+          <button onclick="event.stopPropagation(); sendMusicCmd('prev')">
+            <i class="fas fa-step-backward">
+            </i>
+          </button>
+          <button onclick="event.stopPropagation(); sendMusicCmd('toggle')" id="di-toggle">
+            <i class="fas fa-play">
+            </i>
+          </button>
+          <button onclick="event.stopPropagation(); sendMusicCmd('next')">
+            <i class="fas fa-step-forward">
+            </i>
+          </button>
+        </div>
+      </div>
+      <div class="di-bar-bg">
+        <div id="di-bar-fill">
+        </div>
+      </div>
     </div>
-
     <div id="app-bar">
-        <div id="app-bar-apps">
-            <div data-app-id="terminal" class="app-icon" title="terminal" data-cursor="block"><i class="fas fa-terminal"></i></div>
-            <div data-app-id="games" class="app-icon" title="games" data-cursor="block"><i class="fas fa-gamepad"></i></div>
-            <div data-app-id="music" class="app-icon" title="music" data-cursor="block"><i class="fas fa-music"></i></div>
-            <div data-app-id="settings" class="app-icon" title="settings" data-cursor="block"><i class="fas fa-cog"></i></div>
-            
-            <div class="divider"></div>
-            
-            <div data-app-id="profiles" class="app-icon" title="profiles" data-cursor="block"><i class="fas fa-users"></i></div>
+      <div id="app-bar-apps">
+        <div data-app-id="terminal" class="app-icon" title="terminal" data-cursor="block">
+          <i class="fas fa-terminal">
+          </i>
         </div>
-
-        <div id="app-bar-system">
-            <span id="current-time">00:00</span>
-            <div class="divider"></div>
-            <i id="notification-icon" class="fa-solid fa-bell hover-effect" data-cursor="block"></i>
-            <i id="volume-icon" class="fa-solid fa-volume-high hover-effect" data-cursor="block"></i>
-            <div class="divider"></div>
-            <i class="fa-solid fa-battery-three-quarters" id="battery-icon"></i>
-            <span id="battery-percent">--%</span>
+        <div data-app-id="games" class="app-icon" title="games" data-cursor="block">
+          <i class="fas fa-gamepad">
+          </i>
         </div>
+        <div data-app-id="music" class="app-icon" title="music" data-cursor="block">
+          <i class="fas fa-music">
+          </i>
+        </div>
+        <div data-app-id="settings" class="app-icon" title="settings" data-cursor="block">
+          <i class="fas fa-cog">
+          </i>
+        </div>
+        <div class="divider">
+        </div>
+        <div data-app-id="profiles" class="app-icon" title="profiles" data-cursor="block">
+          <i class="fas fa-users">
+          </i>
+        </div>
+      </div>
+      <div id="app-bar-system">
+        <span id="current-time">
+          00:00
+        </span>
+        <div class="divider">
+        </div>
+        <i id="notification-icon" class="fa-solid fa-bell hover-effect" data-cursor="block">
+        </i>
+        <div class="divider">
+        </div>
+        <i class="fa-solid fa-battery-three-quarters" id="battery-icon">
+        </i>
+        <span id="battery-percent">
+          --%
+        </span>
+      </div>
     </div>
-
     <div id="browser-container">
-        <div id="browser-tab-bar">
-            <div id="new-tab-button" onclick="addTab('newtab')" data-cursor="block"><i class="fas fa-plus"></i></div>
+      <div id="browser-tab-bar">
+        <div id="new-tab-button" onclick="addTab('newtab')" data-cursor="block">
+          <i class="fas fa-plus">
+          </i>
         </div>
-        <div id="browser-content-area"></div>
+      </div>
+      <div id="browser-content-area">
+      </div>
     </div>
-
     <div id="notification-center" class="float-panel">
-        <h3 style="margin-bottom:10px; font-size:13px; color:var(--text-tertiary);">notifications</h3>
-        <div id="notifications-list" style="max-height:300px; overflow-y:auto; font-size:13px; color:var(--text-secondary);">
-            <div style="padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.05);">system ready.</div>
+      <h3 style="margin-bottom:10px; font-size:13px; color:var(--text-tertiary);">
+        notifications
+      </h3>
+      <div id="notifications-list" style="max-height:300px; overflow-y:auto; font-size:13px; color:var(--text-secondary);">
+        <div style="padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+          system ready.
         </div>
+      </div>
     </div>
-
-    <div id="volume-control" class="float-panel" style="width:200px; right:120px;">
-        <h3 style="margin-bottom:10px; font-size:13px; color:var(--text-tertiary);">volume</h3>
-        <input type="range" id="volume-slider" min="0" max="100" value="50" style="width:100%; accent-color:var(--accent-primary);" data-cursor="block">
-    </div>
-<script>
+    <script>
     window.openTOS = function() {
         document.getElementById('tos-modal').classList.add('active');
     }
     window.closeTOS = function() {
         document.getElementById('tos-modal').classList.remove('active');
     }
-</script>
-<script>
+</script> <script>
 // --- STARTUP LOGIC ---
     document.addEventListener('DOMContentLoaded', () => {
         const overlay = document.getElementById('click-to-enter');
         
-        // CHECK: Do we have the magic hash?
         const isCloaked = window.location.hash === '#cloaked';
 
         if (isCloaked) {
-             // --- WE ARE INSIDE THE CLOAKED APP ---
-             // 1. Hide the entry screen
              if(overlay) overlay.style.display = 'none';
              
-             // 2. Run the TOS Check
              initTOSCheck(); 
 
         } else {
-             // --- WE ARE ON THE LANDING PAGE ---
-             // 1. Ensure entry screen is visible
              if(overlay) overlay.style.display = 'flex';
 
-             // 2. Add the click listener
              overlay.addEventListener('click', () => {
                  const win = window.open('about:blank', '_blank');
                  if (win) {
-                     // Calculate the URL for the iframe (add the hash)
-                     // We strip existing hashes first to be safe
                      const currentUrl = window.location.href.split('#')[0];
                      const cloakedUrl = currentUrl + '#cloaked';
 
-                     // Inject the iframe with the hashed URL
                      win.document.write(`<style>body,html{margin:0;padding:0;height:100%;background:#000;}</style><iframe src="${cloakedUrl}" style="border:none;width:100%;height:100%;display:block;"></iframe>`);
                      win.document.close();
                      
-                     // Hide traces
                      window.location.href = 'https://classroom.google.com';
                  } else {
                      alert("Popup blocked! Please allow popups for LightLink");
@@ -751,7 +1023,7 @@ body.theme-67 { --accent-primary: #fff; }
 
         applySavedSettings();
         
-        // IFRAME WATCHER (Auto-Inject Cursor CSS)
+        // css injector cursor (unfinished and unpolished. not added gonna add stuff later)
         const observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
                 mutation.addedNodes.forEach((node) => {
@@ -770,8 +1042,6 @@ body.theme-67 { --accent-primary: #fff; }
         });
         observer.observe(document.body, { childList: true, subtree: true });
     });
-
-    // --- IFRAME INJECTOR ---
     function injectCursorIntoFrame(iframe) {
         const cursor = localStorage.getItem('ez-cursor');
         let css = '';
@@ -788,11 +1058,11 @@ body.theme-67 { --accent-primary: #fff; }
             const doc = iframe.contentDocument;
             if(!doc) return; 
             
-            const old = doc.getElementById('void-cursor-style');
+            const old = doc.getElementById('light-cursor-style');
             if(old) old.remove();
 
             const style = doc.createElement('style');
-            style.id = 'void-cursor-style';
+            style.id = 'light-cursor-style';
             style.textContent = css;
             doc.head.appendChild(style);
         } catch(e) { }
@@ -802,10 +1072,8 @@ body.theme-67 { --accent-primary: #fff; }
         document.querySelectorAll('iframe').forEach(ifr => injectCursorIntoFrame(ifr));
     }
 
-// --- CORE VARIABLES ---
     let profileSocket = null;
-    // UPDATED: Defaults to storage or a random guest ID so it is never null
-    let myProfileId = localStorage.getItem("void_username") || ('guest-' + Math.floor(Math.random() * 1000));
+    let myProfileId = localStorage.getItem("light_username") || ('guest-' + Math.floor(Math.random() * 1000));
     let profileFriends = [];
     let profileGroups = {};
     let currentProfileKey = null;
@@ -814,10 +1082,10 @@ body.theme-67 { --accent-primary: #fff; }
     let toastTimeout = null;
     let activeThemeInterval = null;
     
-    // Settings
-    let voidCloakEnabled = localStorage.getItem('void-cloak-enabled') === 'true';
-    let voidCloakImg = localStorage.getItem('void-cloak-img') || 'cloakimgs/1.png';
-    let searchEngine = localStorage.getItem('void-search-engine') || 'duckduckgo';
+    // settings
+    let lightCloakEnabled = localStorage.getItem('light-cloak-enabled') === 'true';
+    let lightCloakImg = localStorage.getItem('light-cloak-img') || 'cloakimgs/1.png';
+    let searchEngine = localStorage.getItem('light-search-engine') || 'duckduckgo';
     
     const appConfig = {
         'newtab': { name: 'new tab', type: 'content' },
@@ -829,12 +1097,23 @@ body.theme-67 { --accent-primary: #fff; }
     };
 
 const searchEngines = {
-        'duckduckgo': 'https://duckduckgo.com/?q=%s&kp=1',      // kp=1 forces Safe Search
-        'google': 'https://www.google.com/search?q=%s&safe=active', // safe=active forces Strict Mode
-        'bing': 'https://www.bing.com/search?q=%s&adlt=strict', // adlt=strict forces Strict Mode
-        'yahoo': 'https://search.yahoo.com/search?p=%s&vm=r'    // vm=r forces Restricted Mode
+        'duckduckgo': 'https://duckduckgo.com/?q=%s&kp=1',
+        'google (might give unsolveable captchas)': 'https://www.google.com/search?q=%s&safe=active',
+        'bing': 'https://www.bing.com/search?q=%s&adlt=strict',
+        'yahoo': 'https://search.yahoo.com/search?p=%s&vm=r'
     };
+    function search(input, template) {
+      try {
+        return new URL(input).toString();
+      } catch (err) {}
 
+      try {
+        const url = new URL(`http://${input}`);
+        if (url.hostname.includes(".")) return url.toString();
+      } catch (err) {}
+
+      return template.replace("%s", encodeURIComponent(input));
+    }
     function updateTime() {
         const now = new Date();
         document.getElementById('current-time').textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase();
@@ -843,7 +1122,7 @@ const searchEngines = {
     updateTime();
 
     window.showToast = function(title, message) {
-        const toast = document.getElementById('void-toast');
+        const toast = document.getElementById('light-toast');
         document.getElementById('toast-title').textContent = title.toLowerCase();
         document.getElementById('toast-msg').textContent = message.toLowerCase();
         toast.classList.add('visible');
@@ -872,7 +1151,6 @@ const searchEngines = {
         
         document.body.appendChild(div);
 
-        // Handle Clicks
         div.querySelector('.req-accept').onclick = () => {
             profileSocket.emit('respondFriend', { from: fromUser, accepted: true });
             div.remove();
@@ -884,7 +1162,6 @@ const searchEngines = {
             div.remove();
         };
 
-        // Auto-dismiss after 15s
         setTimeout(() => { if(div.parentElement) div.remove(); }, 15000);
     }
 let pendingUrl = '';
@@ -901,17 +1178,14 @@ let pendingUrl = '';
         const btn = document.getElementById('confirm-exit-btn');
         const modal = document.getElementById('exit-modal');
         
-        // Reset and Lock
         btn.disabled = true;
         let timeLeft = 5;
         btn.textContent = `wait ${timeLeft}s...`;
         
         modal.classList.add('active');
 
-        // Clear existing timer if one exists
         if(exitTimer) clearInterval(exitTimer);
 
-        // Start Countdown
         exitTimer = setInterval(() => {
             timeLeft--;
             if(timeLeft <= 0) {
@@ -926,11 +1200,10 @@ let pendingUrl = '';
 
     window.closeExitModal = function() {
         document.getElementById('exit-modal').classList.remove('active');
-        if(exitTimer) clearInterval(exitTimer); // Stop timer if closed early
+        if(exitTimer) clearInterval(exitTimer);
         pendingUrl = '';
     }
 
-    // (Ensure the event listener from the previous step is still there)
     document.addEventListener('DOMContentLoaded', () => {
         const confirmBtn = document.getElementById('confirm-exit-btn');
         if(confirmBtn) {
@@ -942,10 +1215,102 @@ let pendingUrl = '';
             });
         }
     });
+// --- bookmarks boom ---
+window.currentBookmarkIndex = -1;
+
+window.getBookmarks = function() {
+    const stored = localStorage.getItem('light-bookmarks');
+    if (stored) return JSON.parse(stored);
+    return [
+        { name: 'discord', url: 'https://discord.com/app', icon: 'fab fa-discord' },
+        { name: 'spotify', url: 'https://open.spotify.com', icon: 'fab fa-spotify' },
+        { name: 'poki', url: 'https://poki.com', icon: 'fas fa-gamepad' },
+        { name: 'crazygames', url: 'https://crazygames.com', icon: 'fas fa-ghost' }
+    ];
+}
+
+window.openBookmarkEditor = function(index) {
+    window.currentBookmarkIndex = index;
+    const modal = document.getElementById('bookmark-modal');
+    const deleteBtn = modal.querySelector('.btn-danger');
+
+    if (index === -1) {
+        document.querySelector('.modal-title').innerHTML = '<i class="fas fa-plus"></i> add bookmark';
+        document.getElementById('bm-edit-title').value = '';
+        document.getElementById('bm-edit-url').value = '';
+        document.getElementById('bm-edit-icon').value = '';
+        deleteBtn.style.display = 'none';
+    } else {
+        const bookmarks = getBookmarks();
+        const bm = bookmarks[index];
+        document.querySelector('.modal-title').innerHTML = '<i class="fas fa-edit"></i> edit bookmark';
+        document.getElementById('bm-edit-title').value = bm.name;
+        document.getElementById('bm-edit-url').value = bm.url;
+        document.getElementById('bm-edit-icon').value = bm.icon;
+        deleteBtn.style.display = 'block';
+    }
+    
+    modal.classList.add('active');
+}
+
+window.saveBookmark = function() {
+    const title = document.getElementById('bm-edit-title').value;
+    const url = document.getElementById('bm-edit-url').value;
+    const icon = document.getElementById('bm-edit-icon').value;
+    
+    if(!title || !url) return alert("title and url are required");
+
+    let bookmarks = getBookmarks();
+    
+    if (window.currentBookmarkIndex > -1) {
+        bookmarks[window.currentBookmarkIndex] = { name: title, url: url, icon: icon };
+    } else {
+        bookmarks.push({ name: title, url: url, icon: icon });
+    }
+    
+    localStorage.setItem('light-bookmarks', JSON.stringify(bookmarks));
+    closeBookmarkModal();
+    refreshAllNewTabs();
+}
+
+window.deleteBookmark = function() {
+    if (window.currentBookmarkIndex === -1) return;
+    if(!confirm("delete this bookmark?")) return;
+    
+    let bookmarks = getBookmarks();
+    bookmarks.splice(window.currentBookmarkIndex, 1);
+    
+    localStorage.setItem('light-bookmarks', JSON.stringify(bookmarks));
+    closeBookmarkModal();
+    refreshAllNewTabs();
+}
+
+window.closeBookmarkModal = function() {
+    document.getElementById('bookmark-modal').classList.remove('active');
+}
+
+window.refreshAllNewTabs = function() {
+    document.querySelectorAll('.nt-bookmarks').forEach(container => {
+        const tabId = container.dataset.tabId;
+        if(tabId) container.innerHTML = generateBookmarkHTML(tabId);
+    });
+}
+
+window.generateBookmarkHTML = function(tabId) {
+    const bookmarks = getBookmarks();
+    return bookmarks.map((bm, index) => `
+        <div class="nt-bookmark" 
+             onclick="window.handleNewTabSearch('${tabId}', '${bm.url}')"
+             oncontextmenu="event.preventDefault(); event.stopPropagation(); window.openBookmarkEditor(${index}); return false;">
+            <div class="nt-bm-icon"><i class="${bm.icon}"></i></div>
+            <div class="nt-bm-label">${bm.name}</div>
+        </div>
+    `).join('');
+}
 function connectGlobalSocket() {
         if (profileSocket) return;
         
-        const storedUser = localStorage.getItem("void_username");
+        const storedUser = localStorage.getItem("light_username");
         profileSocket = io({ path: "/profiles/socket.io/", auth: { username: storedUser || null } });
         window.profileSocket = profileSocket;
         const isProfilesActive = () => {
@@ -953,32 +1318,28 @@ function connectGlobalSocket() {
             return active && active.dataset.originApp === 'profiles';
         };
 
-        // 1. Initialization (Login/Reconnect)
         profileSocket.on("init", data => {
             myProfileId = data.username;
-            localStorage.setItem("void_username", myProfileId);
+            localStorage.setItem("light_username", myProfileId);
             
             profileFriends = data.friends || [];
             profileGroups = {}; 
             (data.groups || []).forEach(g => profileGroups[g.id] = g);
 
-            // Force UI Update for ID
             const display = document.getElementById('my-id-display');
             if(display) display.textContent = myProfileId;
             
             updateProfileUI();
         });
 
-        // 2. System Messages (Errors, Confirmations)
         profileSocket.on("system", (data) => {
             showToast("system", data.msg);
             addNotificationToCenter(`system: ${data.msg}`);
         });
 
-        // 3. Username Changed Success
         profileSocket.on("usernameChanged", (data) => {
             myProfileId = data.newName;
-            localStorage.setItem("void_username", myProfileId);
+            localStorage.setItem("light_username", myProfileId);
             
             const display = document.getElementById('my-id-display');
             if(display) display.textContent = myProfileId;
@@ -986,17 +1347,14 @@ function connectGlobalSocket() {
             showToast('success', 'username updated');
         });
 
-        // 4. Friend Requests
         profileSocket.on("friendRequest", (data) => {
             showFriendRequest(data.from);
             
-            // Only show dot if NOT on profiles tab
             if (!isProfilesActive()) {
                 document.querySelector('.app-icon[data-app-id="profiles"]')?.classList.add('has-notification');
             }
         });
 
-        // 5. Incoming DMs
         profileSocket.on("dm", ({key, entry}) => {
              if (entry.from !== myProfileId) {
                  showToast(`message from ${entry.from}`, entry.text);
@@ -1006,11 +1364,9 @@ function connectGlobalSocket() {
                     document.querySelector('.app-icon[data-app-id="profiles"]')?.classList.add('has-notification');
                  }
              }
-             // If chat is open, render immediately
              if(currentProfileKey === "dm:" + key && document.getElementById('profile-chatBox')) renderMsg(entry);
         });
 
-        // 6. Incoming Group Messages
         profileSocket.on("groupMsg", ({groupId, entry}) => {
             if (entry.from !== myProfileId) {
                 if (!isProfilesActive()) {
@@ -1020,13 +1376,11 @@ function connectGlobalSocket() {
             if(currentProfileKey === "group:" + groupId && document.getElementById('profile-chatBox')) renderMsg(entry);
         });
 
-        // 7. Admin Broadcasts
         profileSocket.on("globalNotification", (data) => {
             showToast(`system broadcast`, data.message);
             addNotificationToCenter(`system: ${data.message}`);
         });
 
-        // 8. History Loaders
         profileSocket.on("dmHistory", ({history}) => { 
             const box = document.getElementById('profile-chatBox'); 
             if(box) { box.innerHTML = ''; history.forEach(renderMsg); } 
@@ -1036,11 +1390,9 @@ function connectGlobalSocket() {
             const box = document.getElementById('profile-chatBox'); 
             if(box) { box.innerHTML = ''; history.forEach(renderMsg); } 
         });
-        // --- ADMIN LISTENERS ---
+        // --- my favorite (admin) ---
         
-        // 1. You have been warned
         profileSocket.on("adminWarning", (data) => {
-            // Create a scary red modal
             const div = document.createElement('div');
             div.style = "position:fixed; inset:0; background:rgba(200,0,0,0.5); backdrop-filter:blur(5px); z-index:99999; display:flex; align-items:center; justify-content:center;";
             div.innerHTML = `
@@ -1051,10 +1403,8 @@ function connectGlobalSocket() {
                 </div>
             `;
             document.body.appendChild(div);
-            // Play a sound if you want
         });
 
-        // 2. You have been banned
         profileSocket.on("forceDisconnect", (data) => {
             document.body.innerHTML = `
                 <div style="height:100vh; width:100vw; background:#000; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#ef4444; font-family:monospace; text-align:center;">
@@ -1068,26 +1418,37 @@ function connectGlobalSocket() {
         });
     }
 
-    document.addEventListener('mouseleave', () => { if(voidCloakEnabled) { document.getElementById('void-cloak-overlay').style.backgroundImage = `url('${voidCloakImg}')`; document.getElementById('void-cloak-overlay').style.display = 'block'; } });
-    const hideCloak = () => { document.getElementById('void-cloak-overlay').style.display = 'none'; }
+    document.addEventListener('mouseleave', () => { if(lightCloakEnabled) { document.getElementById('light-cloak-overlay').style.backgroundImage = `url('${lightCloakImg}')`; document.getElementById('light-cloak-overlay').style.display = 'block'; } });
+    const hideCloak = () => { document.getElementById('light-cloak-overlay').style.display = 'none'; }
     document.addEventListener('mouseenter', hideCloak);
     document.addEventListener('mousemove', hideCloak); 
     document.addEventListener('keydown', (e) => {
         if (e.ctrlKey && (e.key === 's' || e.key === 'S')) {
             e.preventDefault(); 
-            voidCloakEnabled = !voidCloakEnabled;
-            localStorage.setItem('void-cloak-enabled', voidCloakEnabled);
-            addNotificationToCenter(`linkcloak: ${voidCloakEnabled ? 'enabled' : 'disabled'}`);
+            lightCloakEnabled = !lightCloakEnabled;
+            localStorage.setItem('light-cloak-enabled', lightCloakEnabled);
+            addNotificationToCenter(`linkcloak: ${lightCloakEnabled ? 'enabled' : 'disabled'}`);
             document.body.style.opacity = '0.5'; setTimeout(() => document.body.style.opacity = '1', 100);
-            const toggle = document.getElementById('setting-cloak-toggle'); if(toggle) toggle.checked = voidCloakEnabled;
+            const toggle = document.getElementById('setting-cloak-toggle'); if(toggle) toggle.checked = lightCloakEnabled;
         }
     });
 
     let musicTabId = null;
-    let musicState = { playing: false, hasSong: false };
+    let musicState = { playing: false, hasSong: false, title: '', artist: '', duration: 0, currentTime: 0 };
+document.addEventListener('keydown', (e) => {
+    const panicKey = localStorage.getItem('panic-key') || ']';
+    const panicUrl = localStorage.getItem('panic-url') || 'https://classroom.google.com';
 
+    if (["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)) return;
+
+    if (e.key === panicKey) {
+        e.preventDefault();
+        
+        const newTab = window.open(panicUrl, '_blank');
+        if (newTab) newTab.focus();
+    }
+});
 window.addTab = function(appId, customSrc = null, customTitle = null) {
-        // 1. Handle Special App States
         if (appId === 'profiles') {
             document.querySelector('.app-icon[data-app-id="profiles"]')?.classList.remove('has-notification');
         }
@@ -1096,54 +1457,50 @@ window.addTab = function(appId, customSrc = null, customTitle = null) {
             if (existingTab) { switchToTab(existingTab.dataset.tabId); return; }
         }
 
-        // 2. Setup Elements
         const tabBar = document.getElementById('browser-tab-bar');
         const contentArea = document.getElementById('browser-content-area');
         const config = appConfig[appId] || {};
         const tabId = `tab-${appId}-${tabCounter++}`;
         const title = customTitle || config.name || 'web page';
         
-        // 3. Create Tab Button
         const tabEl = document.createElement('div');
         tabEl.className = 'tab-item active';
         tabEl.dataset.tabId = tabId;
         tabEl.dataset.originApp = appId;
-        tabEl.innerHTML = `<span style="white-space:nowrap; max-width:85%">${title.toLowerCase()}</span><i class="fas fa-times tab-close"></i>`;
-        
-        // Manage Active States
+tabEl.innerHTML = `<span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:80%; display:block;">${title.toLowerCase()}</span><i class="fas fa-times tab-close"></i>`;        
         document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         tabBar.insertBefore(tabEl, document.getElementById('new-tab-button'));
 
-        // 4. Create Content Container
         const contentEl = document.createElement('div');
         contentEl.className = 'tab-content active';
         contentEl.id = tabId;
         
-        // 5. DETERMINE CONTENT TYPE
-        if (appId === 'newtab') {
-            // --- NEW TAB ---
-            contentEl.innerHTML = `
-                <div class="new-tab-body">
-                    <div class="new-tab-overlay"></div>
-                    <div class="nt-content">
-                        <div class="nt-logo">lightlink</div>
-                        <form class="nt-input-wrapper" onsubmit="event.preventDefault(); window.handleNewTabSearch('${tabId}', this.querySelector('input').value)">
-                            <input type="text" class="nt-input" placeholder="search with ${searchEngine}..." autofocus>
-                            <i class="fas fa-search nt-icon"></i>
-                        </form>
-                    </div>
-                </div>`;
-            setTimeout(() => contentEl.querySelector('input')?.focus(), 50);
-
+if (appId === 'newtab') {
+    // --- booooooookmarks ---
+    
+    contentEl.innerHTML = `
+        <div class="new-tab-body">
+            <div class="new-tab-overlay"></div>
+            <div class="nt-content">
+                <div class="nt-logo">lightlink</div>
+                <form class="nt-input-wrapper" onsubmit="event.preventDefault(); window.handleNewTabSearch('${tabId}', this.querySelector('input').value)">
+                    <input type="text" class="nt-input" placeholder="search with ${searchEngine}..." autofocus>
+                    <i class="fas fa-search nt-icon"></i>
+                </form>
+                
+<div class="nt-bookmarks" data-tab-id="${tabId}" oncontextmenu="event.preventDefault(); window.openBookmarkEditor(-1); return false;">
+                    ${window.generateBookmarkHTML(tabId)}
+                </div>
+            </div>
+        </div>`;
+    setTimeout(() => contentEl.querySelector('input')?.focus(), 50);
         } else if (appId === 'settings') {
-            // --- SETTINGS ---
             contentEl.innerHTML = createSettingsContent();
             initSettingsListeners(contentEl);
 
         } else if (appId === 'games') {
-            // --- GAMES ---
-            if(!localStorage.getItem('void_games_disclaimer')) {
+            if(!localStorage.getItem('light_games_disclaimer')) {
                 document.getElementById('games-disclaimer-modal').classList.add('active');
                 contentEl.innerHTML = `<div style="height:100%; display:flex; align-items:center; justify-content:center; color:var(--text-tertiary);">waiting for legal acceptance...</div>`;
                 window.pendingGameTab = tabId;
@@ -1153,23 +1510,18 @@ window.addTab = function(appId, customSrc = null, customTitle = null) {
             }
 
         } else if (appId === 'profiles') {
-            // --- PROFILES (This was broken before) ---
             contentEl.innerHTML = createProfileWindowContent();
-            // We use a slight timeout to ensure the DOM is painted before attaching listeners
             setTimeout(() => setupProfileWindowHandlers(contentEl), 10);
 
         } else {
-            // --- STANDARD APPS / IFRAMES ---
             const ifr = document.createElement('iframe');
             ifr.src = customSrc || config.src;
             contentEl.appendChild(ifr);
         }
 
-        // 6. Finalize
         contentArea.appendChild(contentEl);
         if (appId === 'music') musicTabId = tabId;
 
-        // Tab Click Listeners
         tabEl.addEventListener('click', (e) => { 
             if(!e.target.classList.contains('tab-close')) switchToTab(tabId); 
         });
@@ -1177,16 +1529,14 @@ window.addTab = function(appId, customSrc = null, customTitle = null) {
             e.stopPropagation(); 
             closeTab(tabId); 
         });
-        
+        if(window.renderSavedThemes) window.renderSavedThemes();
         updateIsland(); 
     }
 
 window.switchToTab = function(tabId) {
-        // Toggle Active Classes
         document.querySelectorAll('.tab-item').forEach(t => t.classList.toggle('active', t.dataset.tabId === tabId));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === tabId));
         
-        // NEW: Check if the tab we just switched to is 'profiles'
         const activeTab = document.querySelector(`.tab-item[data-tab-id="${tabId}"]`);
         if (activeTab && activeTab.dataset.originApp === 'profiles') {
             document.querySelector('.app-icon[data-app-id="profiles"]')?.classList.remove('has-notification');
@@ -1209,96 +1559,57 @@ window.switchToTab = function(tabId) {
         }
         if(window.ipadCursorUpdate) window.ipadCursorUpdate();
     }
-    // --- PROXY ROUTER (The Hybrid Engine) ---
+    // i hate you scramjet
 window.getProxyUrl = function(targetUrl) {
-    const type = localStorage.getItem('void-proxy-transport') || 'uv';
+    const type = localStorage.getItem('light-proxy-transport') || 'uv';
     
     if (type === 'scramjet') {
-        // SCRAMJET LOGIC
-        // If config exists, use it. Otherwise fallback to simple appending.
         if (window.__scramjet$config && window.__scramjet$config.codec) {
             return window.__scramjet$config.prefix + window.__scramjet$config.codec.encode(targetUrl);
         }
-        // Fallback for simple configs
         return '/scramjet/' + targetUrl; 
     } 
     else {
-        // ULTRAVIOLET LOGIC (Default)
         return __uv$config.prefix + __uv$config.encodeUrl(targetUrl);
     }
 }
 
 window.setProxyTransport = function(val) {
-    localStorage.setItem('void-proxy-transport', val);
+    localStorage.setItem('light-proxy-transport', val);
     showToast("settings", `proxy backend switched to ${val}`);
 }
 async function initializeProxy() {
         if (initPromise) return initPromise;
         initPromise = (async () => {
-            console.log("Proxy: Initializing...");
+            console.log("initializing uv...");
             if (!navigator.serviceWorker) throw new Error("service workers not supported.");
 
-            // 1. Setup BareMux (Transport) FIRST
             const connection = new BareMux.BareMuxConnection("/baremux/worker.js");
             const wispUrl = (location.protocol === "https:" ? "wss" : "ws") + "://" + location.host + "/wisp/";
             await connection.setTransport("/epoxy/index.mjs", [{ wisp: wispUrl }]);
-            console.log("Proxy: Transport Ready");
+            console.log("uvs good");
 
             const registrations = [];
-
-            // 2. Register UV
-            if (window.__uv$config) {
-                registrations.push(navigator.serviceWorker.register('/uv.worker.js', { scope: __uv$config.prefix }));
-            }
-
-            // 3. Register Scramjet (v2 Controller)
+            if (window.__uv$config) registrations.push(navigator.serviceWorker.register('/uv.worker.js', { scope: __uv$config.prefix }));
             if (window.$scramjetLoadController) {
-                try {
-                    const { ScramjetController } = $scramjetLoadController();
-                    const scramjet = new ScramjetController({
-                        files: {
-                            wasm: "/scramjet/scramjet.wasm.wasm",
-                            all: "/scramjet/scramjet.all.js",
-                            sync: "/scramjet/scramjet.sync.js",
-                        }
-                    });
-                    
-                    await scramjet.init();
-                    // FIX 3: Expose scramjet to window so getProxyUrl can use it
-                    window.scramjet = scramjet;
-                    
-                    registrations.push(navigator.serviceWorker.register('/sj.worker.js', { scope: '/scramjet/' }));
-                } catch(e) {
-                    console.error("Scramjet Init Error (Likely DB Mismatch):", e);
-                }
+                await initScramjetController();
+                registrations.push(navigator.serviceWorker.register('/sj.worker.js', { scope: SCRAMJET_CONFIG.prefix }));
             }
-
             await Promise.all(registrations);
 
-            // 4. Wait for Controller
             if (!navigator.serviceWorker.controller) {
                 await new Promise(resolve => {
-                    const timeout = setTimeout(() => {
-                        console.warn("Proxy: Controller timed out (proceeding anyway)");
-                        resolve();
-                    }, 2000); 
-                    const check = () => {
-                        if (navigator.serviceWorker.controller) { clearTimeout(timeout); resolve(); } 
-                        else setTimeout(check, 50);
-                    };
+                    const timeout = setTimeout(() => { console.warn("Proxy: Controller timed out (proceeding anyway)"); resolve(); }, 2000); 
+                    const check = () => { if (navigator.serviceWorker.controller) { clearTimeout(timeout); resolve(); } else setTimeout(check, 50); };
                     check();
                 });
             }
-
             console.log("Proxy: Hybrid Engine Fully Loaded");
         })();
         return initPromise;
     }
-// --- CHANGELOG LOGIC ---
-// --- CHANGELOG LOGIC ---
 window.checkChangelog = function() {
-    // 1. UPDATE THIS STRING to a unique ID for this specific version
-    const currentVersion = 'void_changelog_1.1.1'; 
+const currentVersion = 'light_changelog_1.2'; 
     
     if (!localStorage.getItem(currentVersion)) {
         const modal = document.getElementById('changelog-modal');
@@ -1307,22 +1618,14 @@ window.checkChangelog = function() {
 }
 
 window.closeChangelog = function() {
-    // 2. UPDATE THIS STRING to match the one above exactly
-    localStorage.setItem('void_changelog_1.1.1', 'true');
+    localStorage.setItem('light_changelog_1.2', 'true');
     document.getElementById('changelog-modal').classList.remove('active');
 }
 
-    window.closeChangelog = function() {
-        localStorage.setItem('void_changelog_1.1', 'true');
-        document.getElementById('changelog-modal').classList.remove('active');
-    }
-
-    // --- UPDATED TOS LOGIC ---
     function initTOSCheck() {
         if (window.location.hash !== '#cloaked') return;
 
-        if (!localStorage.getItem('void_tos_accepted')) {
-            // Case A: New User (Show TOS)
+        if (!localStorage.getItem('light_tos_accepted')) {
             const modal = document.getElementById('tos-modal');
             const entry = document.getElementById('click-to-enter');
             
@@ -1331,7 +1634,6 @@ window.closeChangelog = function() {
                 if (entry) entry.style.setProperty('pointer-events', 'none', 'important');
             }
         } else {
-            // Case B: Returning User (Skip TOS, check for Updates)
             checkChangelog();
         }
     }
@@ -1342,15 +1644,13 @@ window.closeChangelog = function() {
             timestamp: new Date().toISOString(),
             userAgent: navigator.userAgent
         };
-        localStorage.setItem('void_tos_accepted', JSON.stringify(signature));
+        localStorage.setItem('light_tos_accepted', JSON.stringify(signature));
         
         document.getElementById('tos-modal').classList.remove('active');
         
-        // Unlock entry
         const entry = document.getElementById('click-to-enter');
         if (entry) entry.style.pointerEvents = 'all';
 
-        // Show Changelog immediately after agreeing
         checkChangelog();
     }
 window.checkTOSInput = function() {
@@ -1372,7 +1672,6 @@ window.checkTOSInput = function() {
         }
     }
     window.disagreeTOS = function() {
-        // Nuke the body content
         document.body.innerHTML = `
             <div style="height:100vh; width:100vw; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#000; color:#ef4444; font-family:sans-serif; text-align:center; gap:20px;">
                 <h1 style="font-size:40px; margin:0;">access denied</h1>
@@ -1383,15 +1682,12 @@ window.checkTOSInput = function() {
             </div>
         `;
     }
-// --- UPDATED SAFETY FILTER (Content Scanning) ---
 const BLOCKED_ROOTS = [
-    // Content
-    "porn", "sex", "xxx", "nude", "hentai", "horny",
+    "porn", "xxx", "nude", "hentai", "horny",
     "xvideo", "xnxx", "redtube", "brazzers", "chaturbate",
     "milf", "fuck", "dick", "pussy", "vagina", "cock", "penis",
-    "gore", "suicide", "meth", "heroin", "cocaine", "kill", "murder",
+    "gore", "suicide", "heroin", "cocaine",
     
-    // Settings Locks
 "safe=off", "safe=images", "adlt=off", "kp=-1", "kp=-2"
 ];
 
@@ -1403,7 +1699,6 @@ const SAFE_EXCEPTIONS = [
     "google", "good", "pool", "loop", "coordinate", "cooperate"
 ];
 
-// This function runs on the main menu input
 function isUnsafe(query) {
     if (!query) return false;
     const lower = query.toLowerCase();
@@ -1425,7 +1720,6 @@ window.handleNewTabSearch = async function(tabId, query) {
     
     if(tabEl) tabEl.textContent = query.toLowerCase();
 
-    // 1. INPUT CHECK
     if (isUnsafe(query)) {
         contentEl.innerHTML = `
             <div style="height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:var(--bg-dark); color:#ef4444; text-align:center;">
@@ -1458,13 +1752,27 @@ const encoded = window.getProxyUrl(url);
         ifr.allow = "fullscreen; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
         ifr.sandbox = "allow-forms allow-modals allow-orientation-lock allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts allow-top-navigation allow-top-navigation-by-user-activation";
         
-        ifr.onload = () => {
+       ifr.onload = () => {
             if(typeof injectCursorIntoFrame === 'function') injectCursorIntoFrame(ifr);
 
             try {
                 const doc = ifr.contentDocument;
-                
-                // --- INJECTION 1: UI HIDING ---
+
+                const updateTabTitle = () => {
+                    if (doc.title && doc.title.trim() !== "") {
+                        const tabEl = document.querySelector(`.tab-item[data-tab-id="${tabId}"] span`);
+                        if (tabEl) tabEl.textContent = doc.title.toLowerCase();
+                    }
+                };
+
+                updateTabTitle();
+
+                const titleTag = doc.querySelector('title');
+                if (titleTag) {
+                    const observer = new MutationObserver(updateTabTitle);
+                    observer.observe(titleTag, { childList: true, subtree: true, characterData: true });
+                }
+
                 const style = doc.createElement('style');
                 style.textContent = `
                     [aria-label^="SafeSearch"], [href*="preferences"], .appbar center, #ss-status,
@@ -1475,77 +1783,45 @@ const encoded = window.getProxyUrl(url);
                 `;
                 if(doc.head) doc.head.appendChild(style);
 
-                // --- INJECTION 2: CONTENT SCANNER & URL WATCHDOG ---
                 const script = doc.createElement('script');
-                
-                // We inject the lists directly into the iframe so it can scan itself
                 script.textContent = `
                     (function() {
                         const BLOCKED = ${JSON.stringify(BLOCKED_ROOTS)};
                         const EXCEPTIONS = ${JSON.stringify(SAFE_EXCEPTIONS)};
                         
-                        // Scanner Function
                         const scanPage = () => {
                             try {
                                 const bodyText = document.body.innerText.toLowerCase();
                                 const cleanText = bodyText.replace(/[^a-z0-9]/g, '');
-
-                                // Optimization: Only scan if text is reasonably long to avoid freezing
-                                // We iterate through our blocked words and see if the page contains them
                                 for (let word of BLOCKED) {
                                     if (cleanText.includes(word)) {
-                                        // Check exceptions (e.g. don't block "class" for "ass")
                                         let isSafe = false;
                                         for (let safe of EXCEPTIONS) {
-                                            if (cleanText.includes(safe.replace(/[^a-z0-9]/g, ''))) {
-                                                // If the page contains a safe word that might trigger the bad word, we verify context
-                                                // NOTE: This is a "Strict" filter, so we might block anyway.
-                                                // For "Nuclear" mode, we ignore exceptions if the bad word is explicit.
-                                            }
+                                            if (cleanText.includes(safe.replace(/[^a-z0-9]/g, ''))) isSafe = true;
                                         }
-                                        
-                                        // NUKE THE PAGE
-                                        document.body.innerHTML = \`
-                                            <div style="height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#111; color:#ef4444; font-family:sans-serif; text-align:center;">
-                                                <h1 style="font-size:40px;">PAGE BLOCKED</h1>
-                                                <p style="color:#aaa;">Content filter triggered by keyword: <strong>\${word}</strong></p>
-                                            </div>
-                                        \`;
-                                        throw new Error("Blocked");
+                                        if (!isSafe) {
+                                            document.body.innerHTML = '<div style="background:#111; color:red; height:100vh; display:flex; align-items:center; justify-content:center;"><h1>PAGE BLOCKED</h1></div>';
+                                            throw new Error("Blocked");
+                                        }
                                     }
                                 }
                             } catch(e) {}
                         };
-
-                        // URL Enforcer Function
                         const enforceSafeSearch = () => {
                             try {
                                 const u = new URL(window.location.href);
-                                let bad = false;
-                                if (u.hostname.includes('google') && u.searchParams.get('safe') !== 'active') {
-                                    u.searchParams.set('safe', 'active'); bad = true;
-                                }
-                                else if (u.hostname.includes('bing') && u.searchParams.get('adlt') !== 'strict') {
-                                    u.searchParams.set('adlt', 'strict'); bad = true;
-                                }
-                                else if (u.hostname.includes('duckduckgo') && u.searchParams.get('kp') !== '1') {
-                                    u.searchParams.set('kp', '1'); bad = true;
-                                }
-                                else if (u.hostname.includes('yahoo') && u.searchParams.get('vm') !== 'r') {
-                                    u.searchParams.set('vm', 'r'); bad = true;
-                                }
-                                if (bad) window.location.replace(u.toString());
+                                if (u.hostname.includes('google') && u.searchParams.get('safe') !== 'active') { u.searchParams.set('safe', 'active'); window.location.replace(u.toString()); }
                             } catch(e) {}
                         };
-
-                        // Run loops
-                        setInterval(scanPage, 1000); // Scan text every second
-                        setInterval(enforceSafeSearch, 500); // Check URL every 0.5s
+                        setInterval(scanPage, 1000);
+                        setInterval(enforceSafeSearch, 500);
                     })();
                 `;
                 if(doc.head) doc.head.appendChild(script);
 
-            } catch(e) {}
+            } catch(e) {
+                console.warn("Could not access iframe content for title update.");
+            }
         };
         
         contentEl.innerHTML = '';
@@ -1569,122 +1845,110 @@ const encoded = window.getProxyUrl(url);
 };
 
 function createSettingsContent() {
-        let presetButtons = `
-            <button onclick="setThemePreset('void-dark')" class="btn" style="background:#0a0a0f; border:1px solid #333; color:#fff" data-cursor="block">dark</button>
-            <button onclick="setThemePreset('theme-starlight')" class="btn" style="background:#f0f2f5; color:#333" data-cursor="block">light</button>
-            <button onclick="setThemePreset('theme-thanksgiving')" class="btn" style="background:#4a3728; color:#fff" data-cursor="block">autumn</button>
-            <button onclick="setThemePreset('theme-christmas')" class="btn" style="background:#143d20; color:#fff" data-cursor="block">winter</button>
-            <button onclick="setThemePreset('theme-67')" class="btn" style="background:#111; border:1px solid #444; color:#fff; grid-column: span 2;" data-cursor="block">67</button>
-        `;
+    // 1. Static Presets (The buttons you already have)
+    let staticPresets = `
+        <button onclick="setThemePreset('light-dark')" class="btn" style="background:#0a0a0f; border:1px solid #333; color:#fff" data-cursor="block">dark</button>
+        <button onclick="setThemePreset('theme-starlight')" class="btn" style="background:#f0f2f5; color:#333" data-cursor="block">light</button>
+        <button onclick="setThemePreset('theme-thanksgiving')" class="btn" style="background:#4a3728; color:#fff" data-cursor="block">autumn</button>
+        <button onclick="setThemePreset('theme-christmas')" class="btn" style="background:#143d20; color:#fff" data-cursor="block">winter</button>
+        <button onclick="setThemePreset('theme-67')" class="btn" style="background:#111; border:1px solid #444; color:#fff;" data-cursor="block">67</button>
+    `;
 
-        let walls = ''; for(let i=1; i<=6; i++) walls += `<img src="Wallpapers/${i}.png" class="wp-thumb" onclick="applyWallpaper('Wallpapers/${i}.png')" data-wp="Wallpapers/${i}.png" data-cursor="block">`;
-        let cloakImages = ''; for(let i=1; i<=3; i++) cloakImages += `<img src="cloakimgs/${i}.png" class="wp-thumb cloak-thumb" onclick="setCloakImg('cloakimgs/${i}.png')" data-img="cloakimgs/${i}.png" data-cursor="block">`;
-        let seOptions = Object.keys(searchEngines).map(se => `<option value="${se}" ${searchEngine === se ? 'selected' : ''}>${se}</option>`).join('');
+    let walls = ''; for(let i=1; i<=6; i++) walls += `<img src="Wallpapers/${i}.png" class="wp-thumb" onclick="applyWallpaper('Wallpapers/${i}.png')" data-wp="Wallpapers/${i}.png" data-cursor="block">`;
+    let cloakImages = ''; for(let i=1; i<=3; i++) cloakImages += `<img src="cloakimgs/${i}.png" class="wp-thumb cloak-thumb" onclick="setCloakImg('cloakimgs/${i}.png')" data-img="cloakimgs/${i}.png" data-cursor="block">`;
+    let seOptions = Object.keys(searchEngines).map(se => `<option value="${se}" ${searchEngine === se ? 'selected' : ''}>${se}</option>`).join('');
 
-        return `
-            <div class="content-page">
-                <div class="content-header">
-                    <h2 class="content-title">settings</h2>
-                </div>
-                <div class="grid-layout">
+    return `
+        <div class="content-page">
+            <div class="content-header"><h2 class="content-title">settings</h2></div>
+            <div class="grid-layout">
+                
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-palette"></i> themes</div>
                     
-                    <div class="card">
-                        <div class="card-title"><i class="fas fa-palette"></i> themes</div>
-                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:20px;">
-                            ${presetButtons}
+                    <div id="theme-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:20px;">
+                        ${staticPresets}
+                        </div>
+                </div>
+
+                <div class="card" style="border-color: var(--accent-primary);">
+                    <div class="card-title" style="color:var(--accent-primary)"><i class="fas fa-brain"></i> ai theme</div>
+                    
+                    <div style="display:flex; gap:8px;">
+                        <input id="ai-prompt" class="setting-input" style="flex:1; margin-bottom:0;" placeholder="e.g. 'toxic neon city' or 'calm ocean'">
+                        <button onclick="generateNeuralTheme()" id="btn-generate-ai" class="btn btn-primary" style="width:auto; margin-bottom:0;" data-cursor="block"><i class="fas fa-bolt"></i></button>
+                        <button onclick="saveCurrentTheme()" id="btn-save-theme" class="btn" style="width:auto; margin-bottom:0; display:none; background:rgba(255,255,255,0.1);" title="Save to Library" data-cursor="block"><i class="fas fa-save"></i></button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-sliders-h"></i> interface tweaks</div>
+                    <div style="margin-bottom:15px"><label style="font-size:12px; color:var(--text-tertiary)">roundness</label><input type="range" min="0" max="25" id="slider-radius" oninput="setRadius(this.value)"></div>
+                    <div style="margin-bottom:15px"><label style="font-size:12px; color:var(--text-tertiary)">ui transparency</label><input type="range" min="0" max="100" id="slider-glass" oninput="setGlass(this.value)"></div>
+                </div>
+
+                <div class="card">
+                     <div class="card-title"><i class="fas fa-paint-brush"></i> custom colors</div>
+                     <div class="color-picker-row"><span>accent</span> <input type="color" onchange="setCustomColor('--accent-primary', this.value)" id="cp-accent"></div>
+                     <div class="color-picker-row"><span>background</span> <input type="color" onchange="setCustomColor('--bg-dark', this.value)" id="cp-bg"></div>
+                     <div class="color-picker-row"><span>navbar</span> <input type="color" onchange="setCustomColor('--nav-bg', this.value)" id="cp-nav"></div>
+                     <div class="color-picker-row"><span>text</span> <input type="color" onchange="setCustomColor('--text-primary', this.value)" id="cp-text"></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-layer-group"></i> system</div>
+                    <label style="display:block; margin-bottom:5px; margin-top:10px; font-size:13px;">game provider</label>
+                    <select onchange="setGameProvider(this.value)" id="setting-game-provider" class="setting-input" style="background:rgba(0,0,0,0.3);">
+                        <option value="Truffled">truffled (default)</option>
+                        <option value="GN-Math">gn-math</option>
+                        <option value="Selenite">selenite</option>
+                        <option value="Velara">velara</option>
+                        <option value="DuckMath">duckmath</option>
+                    </select>
+                    
+                    <div style="margin-top:15px; border-top:1px solid rgba(255,255,255,0.1); padding-top:15px;">
+                        <div style="font-size:13px; font-weight:600; color:var(--text-secondary); margin-bottom:10px;"><i class="fas fa-running"></i> panic button</div>
+                        <div style="display:flex; gap:10px;">
+                            <div style="flex:1">
+                                <label style="font-size:11px; color:var(--text-tertiary);">trigger key</label>
+                                <input type="text" class="setting-input" maxlength="1" placeholder="]" value="${localStorage.getItem('panic-key') || ']'}" onkeyup="localStorage.setItem('panic-key', this.value)" style="text-align:center;">
+                            </div>
+                            <div style="flex:3">
+                                <label style="font-size:11px; color:var(--text-tertiary);">redirect url</label>
+                                <input type="text" class="setting-input" placeholder="https://classroom.google.com" value="${localStorage.getItem('panic-url') || ''}" onkeyup="localStorage.setItem('panic-url', this.value)">
+                            </div>
                         </div>
                     </div>
 
-                    <div class="card">
-                        <div class="card-title"><i class="fas fa-sliders-h"></i> interface tweaks</div>
-                        <div style="margin-bottom:15px">
-                            <label style="font-size:12px; color:var(--text-tertiary)">roundness</label>
-                            <input type="range" min="0" max="25" id="slider-radius" oninput="setRadius(this.value)" data-cursor="block">
-                        </div>
-                        <div style="margin-bottom:15px">
-                            <label style="font-size:12px; color:var(--text-tertiary)">ui transparency</label>
-                            <input type="range" min="0" max="100" id="slider-glass" oninput="setGlass(this.value)" data-cursor="block">
-                        </div>
-                        <div style="margin-bottom:10px">
-                            <label style="font-size:12px; color:var(--text-tertiary)">font family</label>
-                            <select onchange="setFont(this.value)" id="select-font" class="setting-input" style="background:rgba(0,0,0,0.3)" data-cursor="block">
-                                <option value="'Inter', sans-serif">modern (inter)</option>
-                                <option value="'JetBrains Mono', monospace">code (mono)</option>
-                                <option value="'Crimson Text', serif">classic (serif)</option>
-                                <option value="'Press Start 2P', cursive">retro (pixel)</option>
-                                <option value="'Comic Sans MS', cursive">playful</option>
-                            </select>
-                        </div>
+                    <label style="display:block; margin-bottom:5px; margin-top:10px; font-size:13px;">proxy backend</label>
+                    <select onchange="setProxyTransport(this.value)" id="setting-proxy-transport" class="setting-input" style="background:rgba(0,0,0,0.3);">
+                        <option value="uv">ultraviolet (stable)</option>
+                        <option value="scramjet">scramjet (fast)</option>
+                    </select>
+                    <label style="display:block; margin-bottom:5px; margin-top:10px; font-size:13px;">search engine</label>
+                    <select onchange="setSearchEngine(this.value)" class="setting-input" style="background:rgba(0,0,0,0.3);">
+                        ${seOptions}
+                    </select>
+                </div>
+
+                <div class="card" style="grid-column: span 1;">
+                    <div class="card-title"><i class="fas fa-image"></i> wallpaper</div>
+                    <input type="text" class="setting-input" placeholder="paste image url..." onchange="applyWallpaper(this.value)">
+                    <div class="wp-grid" style="margin-top:10px">${walls}</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-user-secret"></i> linkcloak</div>
+                    <div style="margin-bottom:15px; display:flex; align-items:center; justify-content:space-between;">
+                        <span style="font-size:13px; color:var(--text-secondary)">auto-cloak (ctrl+s)</span>
+                        <label class="switch">
+                            <input type="checkbox" id="setting-cloak-toggle" ${lightCloakEnabled ? 'checked' : ''} onchange="toggleCloak(this.checked)">
+                            <span class="slider round" data-cursor="block"></span>
+                        </label>
                     </div>
-
-                    <div class="card">
-                         <div class="card-title"><i class="fas fa-paint-brush"></i> custom colors</div>
-                         <div class="color-picker-row"><span>accent</span> <input type="color" onchange="setCustomColor('--accent-primary', this.value)" id="cp-accent" data-cursor="block"></div>
-                         <div class="color-picker-row"><span>background</span> <input type="color" onchange="setCustomColor('--bg-dark', this.value)" id="cp-bg" data-cursor="block"></div>
-                         <div class="color-picker-row"><span>navbar</span> <input type="color" onchange="setCustomColor('--nav-bg', this.value)" id="cp-nav" data-cursor="block"></div>
-                         <div class="color-picker-row"><span>text</span> <input type="color" onchange="setCustomColor('--text-primary', this.value)" id="cp-text" data-cursor="block"></div>
-                    </div>
-
-<div class="card">
-                        <div class="card-title"><i class="fas fa-layer-group"></i> system</div>
-<label style="display:block; margin-bottom:5px; margin-top:10px; font-size:13px;">game provider</label>
-<select onchange="setGameProvider(this.value)" id="setting-game-provider" class="setting-input" style="background:rgba(0,0,0,0.3);" data-cursor="block">
-    <option value="Truffled">truffled (default)</option>
-    <option value="GN-Math">gn-math</option>
-    <option value="Selenite">selenite</option>
-    <option value="Velara">velara</option>
-    <option value="DuckMath">duckmath</option>
-</select>
-<label style="display:block; margin-bottom:5px; margin-top:10px; font-size:13px;">proxy backend</label>
-<select onchange="setProxyTransport(this.value)" id="setting-proxy-transport" class="setting-input" style="background:rgba(0,0,0,0.3);" data-cursor="block">
-    <option value="uv">ultraviolet (stable)</option>
-    <option value="scramjet">scramjet (fast)</option>
-</select>
-                        <label style="display:block; margin-bottom:5px; font-size:13px;">navbar position</label>
-                        <select onchange="setLayout(this.value)" class="setting-input" style="background:rgba(0,0,0,0.3);" data-cursor="block">
-                            <option value="top" ${!document.body.classList.contains('layout-bottom') ? 'selected' : ''}>top</option>
-                            <option value="bottom" ${document.body.classList.contains('layout-bottom') ? 'selected' : ''}>bottom</option>
-                        </select>
-
-                        <label style="display:block; margin-bottom:5px; margin-top:10px; font-size:13px;">search engine</label>
-                        <select onchange="setSearchEngine(this.value)" class="setting-input" style="background:rgba(0,0,0,0.3);" data-cursor="block">
-                            ${seOptions}
-                        </select>
-                    </div>
-
-                    <div class="card" style="grid-column: span 1;">
-                        <div class="card-title"><i class="fas fa-image"></i> wallpaper</div>
-                        <input type="text" class="setting-input" placeholder="paste image url..." onchange="applyWallpaper(this.value)" data-cursor="block">
-                        <div class="wp-grid" style="margin-top:10px">${walls}</div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-title"><i class="fas fa-user-secret"></i> linkcloak</div>
-                        <div style="margin-bottom:15px; display:flex; align-items:center; justify-content:space-between;">
-                            <span style="font-size:13px; color:var(--text-secondary)">auto-cloak (ctrl+s)</span>
-                            <label class="switch">
-                                <input type="checkbox" id="setting-cloak-toggle" ${voidCloakEnabled ? 'checked' : ''} onchange="toggleCloak(this.checked)">
-                                <span class="slider round" data-cursor="block"></span>
-                            </label>
-                        </div>
-                        <div class="wp-grid">${cloakImages}</div>
-                    </div>
-
-<div class="card">
-                        <div class="card-title"><i class="fab fa-github"></i> credits</div>
-                        <p style="font-size:13px; color:var(--text-secondary); margin-bottom:5px;">
-                            lightlink is open source software.
-                        </p>
-                        <div style="font-size:11px; color:var(--text-tertiary); margin-bottom:15px;">
-                            licensed under <strong style="color:var(--accent-primary)">GNU AGPL v3.0</strong>
-                        </div>
-                        
-                        <button onclick="triggerExit('https://github.com/lightight/lightproxy')" class="btn btn-primary" style="display:flex; align-items:center; justify-content:center; gap:8px;" data-cursor="block">
-                            <i class="fas fa-code-branch"></i> view source code
-                        </button>
-                    </div>
-
-<div class="card">
+                    <div class="wp-grid">${cloakImages}</div>
+                </div>
+                <div class="card">
                         <div class="card-title"><i class="fas fa-heart"></i> thanks to</div>
                         <div style="display:flex; flex-direction:column; gap:8px;">
                             <button onclick="triggerExit('https://github.com/CatsJuice/ipad-cursor')" class="btn" style="text-align:left; background:rgba(255,255,255,0.05); color:var(--text-secondary); font-size:12px; display:flex; align-items:center; gap:10px;" data-cursor="block">
@@ -1701,25 +1965,21 @@ function createSettingsContent() {
                             </button>
                         </div>
                     </div>
-
-                    <div class="card">
-                        <div class="card-title"><i class="fas fa-comment-alt"></i> feedback center</div>
-                        <textarea id="feedback-input" class="setting-input" style="height:80px; resize:none; font-family:var(--ui-font);" placeholder="bugs, ideas, or just say hi... (p.s. want a response? give us your profiles id in the feedback and we'll dm you personally!)" data-cursor="block"></textarea>
-                        <button onclick="submitFeedback()" id="btn-feedback" class="btn btn-primary" data-cursor="block">send feedback</button>
-                    </div>
-
-                    <div class="card" style="grid-column: 1 / -1;">
-                        <div class="card-title"><i class="fas fa-code"></i> advanced css</div>
-                        <textarea id="custom-css-input" spellcheck="false" style="width:100%; height:80px; background:rgba(0,0,0,0.3); color:#aaffaa; border:1px solid rgba(255,255,255,0.1); border-radius:6px; padding:10px; font-family:'JetBrains Mono', monospace; font-size:12px;" placeholder="body { ... }"></textarea>
-                        <button onclick="saveCustomCSS()" class="btn btn-primary" style="margin-top:10px; width:auto;" data-cursor="block">apply css</button>
-                        <button onclick="repairProxy()" class="btn btn-danger" style="margin-top:10px; width:auto; float:right;" data-cursor="block">factory reset</button>
-                    </div>
+                <div class="card">
+                    <div class="card-title"><i class="fab fa-github"></i> credits</div>
+                    <p style="font-size:13px; color:var(--text-secondary); margin-bottom:5px;">lightlink is open source software.</p>
+                    <div style="font-size:11px; color:var(--text-tertiary); margin-bottom:15px;">licensed under <strong style="color:var(--accent-primary)">GNU AGPL v3.0</strong></div>
+                    <button onclick="triggerExit('https://github.com/lightight/lightproxy')" class="btn btn-primary" style="display:flex; align-items:center; justify-content:center; gap:8px;" data-cursor="block"><i class="fas fa-code-branch"></i> view source code</button>
                 </div>
-            </div>
-        `;
-    }
 
-    // --- SETTINGS LOGIC ---
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-comment-alt"></i> feedback center</div>
+                    <textarea id="feedback-input" class="setting-input" style="height:80px; resize:none; font-family:var(--ui-font);" placeholder="bugs, ideas, or just say hi..."></textarea>
+                    <button onclick="submitFeedback()" id="btn-feedback" class="btn btn-primary" data-cursor="block">send feedback</button>
+                </div>`;
+}
+
+    // --- more settings (fml) ---
     window.setRadius = function(val) {
         document.documentElement.style.setProperty('--radius-sm', (val/2)+'px');
         document.documentElement.style.setProperty('--radius-md', val+'px');
@@ -1744,17 +2004,14 @@ function createSettingsContent() {
     
     window.setThemePreset = function(theme) {
         document.body.className = theme; 
-        if(localStorage.getItem('void-layout') === 'bottom') document.body.classList.add('layout-bottom');
+        if(localStorage.getItem('light-layout') === 'bottom') document.body.classList.add('layout-bottom');
 
-        // Nuke Custom Styles (Inline)
         ['--bg-dark', '--nav-bg', '--text-primary', '--accent-primary'].forEach(p => {
             document.documentElement.style.removeProperty(p);
         });
 
-        // Clear Storage
         ['custom-bg', 'custom-nav', 'custom-text', 'custom-accent'].forEach(k => localStorage.removeItem(k));
 
-        // Update Inputs
         setTimeout(() => {
             const styles = getComputedStyle(document.body);
             const bg = styles.getPropertyValue('--bg-dark').trim();
@@ -1787,26 +2044,101 @@ function createSettingsContent() {
     window.setLayout = function(pos) {
         if(pos === 'bottom') { document.body.classList.add('layout-bottom'); document.body.dataset.layout = 'bottom'; } 
         else { document.body.classList.remove('layout-bottom'); document.body.dataset.layout = 'top'; }
-        localStorage.setItem('void-layout', pos);
+        localStorage.setItem('light-layout', pos);
     }
 
+window.currentThemeCache = null;
+
+window.saveCurrentTheme = function() {
+    if (!window.currentThemeCache) return;
+    
+    let saved = JSON.parse(localStorage.getItem('light-saved-themes') || '[]');
+    
+    saved.unshift(window.currentThemeCache);
+    if(saved.length > 20) saved.pop();
+    
+    localStorage.setItem('light-saved-themes', JSON.stringify(saved));
+    
+    renderSavedThemes();
+    showToast('saved', 'theme added to library');
+}
+
+window.renderSavedThemes = function() {
+    const grid = document.getElementById('theme-grid');
+    if (!grid) return;
+    
+    const oldDynamic = grid.querySelectorAll('.dynamic-theme-btn');
+    oldDynamic.forEach(el => el.remove());
+
+    const saved = JSON.parse(localStorage.getItem('light-saved-themes') || '[]');
+    
+    saved.forEach((t, index) => {
+        const btn = document.createElement('button');
+        btn.className = 'btn dynamic-theme-btn'; 
+        btn.setAttribute('data-cursor', 'block');
+        
+        btn.style.background = t.colors.bg;
+        btn.style.color = t.colors.text;
+        btn.style.border = `1px solid ${t.colors.accent}`;
+        btn.style.whiteSpace = 'nowrap';
+        btn.style.overflow = 'hidden';
+        btn.style.textOverflow = 'ellipsis';
+        
+        btn.textContent = t.name.toLowerCase();
+        
+        btn.onclick = () => applySavedTheme(index);
+        btn.oncontextmenu = (e) => {
+            e.preventDefault();
+            deleteSavedTheme(index);
+            return false;
+        };
+
+        grid.appendChild(btn);
+    });
+}
+
+window.applySavedTheme = function(index) {
+    const saved = JSON.parse(localStorage.getItem('light-saved-themes') || '[]');
+    const t = saved[index];
+    if(!t) return;
+
+    setCustomColor('--bg-dark', t.colors.bg);
+    setCustomColor('--nav-bg', t.colors.nav);
+    setCustomColor('--text-primary', t.colors.text);
+    setCustomColor('--accent-primary', t.colors.accent);
+    
+    showToast('applied', t.name);
+    
+    setTimeout(() => {
+        if(document.getElementById('cp-bg')) document.getElementById('cp-bg').value = t.colors.bg;
+        if(document.getElementById('cp-nav')) document.getElementById('cp-nav').value = t.colors.nav;
+        if(document.getElementById('cp-text')) document.getElementById('cp-text').value = t.colors.text;
+        if(document.getElementById('cp-accent')) document.getElementById('cp-accent').value = t.colors.accent;
+    }, 50);
+}
+
+window.deleteSavedTheme = function(index) {
+    if(!confirm('delete this theme?')) return;
+    let saved = JSON.parse(localStorage.getItem('light-saved-themes') || '[]');
+    saved.splice(index, 1);
+    localStorage.setItem('light-saved-themes', JSON.stringify(saved));
+    renderSavedThemes();
+}
     window.setSearchEngine = function(val) {
         searchEngine = val;
-        localStorage.setItem('void-search-engine', val);
+        localStorage.setItem('light-search-engine', val);
     }
-// --- GAMES & PROXY LOGIC ---
 
 window.setGameProvider = function(val) {
-    localStorage.setItem('void-game-provider', val);
-    sessionStorage.removeItem(`void_games_v2_${val}`); // Clear cache
+    localStorage.setItem('light-game-provider', val);
+    sessionStorage.removeItem(`light_games_v2_${val}`); 
     showToast("settings", "provider updated. reopen games tab.");
 }
 
 window.acceptGamesDisclaimer = function() {
-    localStorage.setItem('void_games_disclaimer', 'true');
+    localStorage.setItem('light_games_disclaimer', 'true');
     document.getElementById('games-disclaimer-modal').classList.remove('active');
     
-    // Reload pending tab
     if(window.pendingGameTab) {
         const el = document.getElementById(window.pendingGameTab);
         if(el) {
@@ -1816,102 +2148,85 @@ window.acceptGamesDisclaimer = function() {
     }
 }
 
-window.launchProxiedGame = async function(url, title) {
-    // 1. Create Tab
-    window.addTab('newtab', null, title);
-    const activeContent = document.querySelector('.tab-content.active');
-    if(!activeContent) return;
+    window.launchProxiedGame = async function(url, title) {
+        window.addTab('newtab', null, title);
+        const activeContent = document.querySelector('.tab-content.active');
+        if(!activeContent) return;
 
-    activeContent.innerHTML = `
-        <div style="height:100%; width:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:var(--bg-dark);">
-            <i class="fas fa-circle-notch fa-spin" style="font-size:24px; color:var(--accent-primary); margin-bottom:15px;"></i>
-            <div style="color:var(--text-secondary); font-size:14px;">launching ${title.toLowerCase()}...</div>
-        </div>
-    `;
+        activeContent.innerHTML = `
+            <div style="height:100%; width:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:var(--bg-dark);">
+                <i class="fas fa-circle-notch fa-spin" style="font-size:24px; color:var(--accent-primary); margin-bottom:15px;"></i>
+                <div style="color:var(--text-secondary); font-size:14px;">launching ${title.toLowerCase()}...</div>
+            </div>
+        `;
 
-    try {
-        await initializeProxy();
+        try {
+            await initializeProxy();
 
-        if (!url.startsWith('http')) throw new Error("Invalid Game URL");
-        
-const encoded = window.getProxyUrl(url);
-        const ifr = document.createElement('iframe');
-        
-        ifr.src = encoded;
-        ifr.style.border = 'none';
-        ifr.style.width = '100%';
-        ifr.style.height = '100%';
-        ifr.allow = "fullscreen; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
-        ifr.sandbox = "allow-forms allow-modals allow-orientation-lock allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts allow-top-navigation allow-top-navigation-by-user-activation";
+            if (!url.startsWith('http')) throw new Error("Invalid Game URL");
+            
+            const encoded = window.getProxyUrl(url);
+            
+            const ifr = document.createElement('iframe');
+            
+            ifr.src = encoded;
+            ifr.style.border = 'none';
+            ifr.style.width = '100%';
+            ifr.style.height = '100%';
+            ifr.allow = "fullscreen; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
+            ifr.sandbox = "allow-forms allow-modals allow-orientation-lock allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts allow-top-navigation allow-top-navigation-by-user-activation";
 
-        // --- AGGRESSIVE SUPPRESSOR ---
-        // We run this loop every 10ms to catch the game engine the moment it initializes
-        const suppressorInterval = setInterval(() => {
-            try {
-                if (!ifr.contentWindow) return;
-                const win = ifr.contentWindow;
-                const doc = ifr.contentDocument;
+            const suppressorInterval = setInterval(() => {
+                try {
+                    if (!ifr.contentWindow) return;
+                    const win = ifr.contentWindow;
+                    const doc = ifr.contentDocument;
 
-                // 1. Kill Native Alerts (The Popup)
-                if (win.alert.toString().includes('native code')) {
-                    win.alert = function(msg) { console.log("Suppressed alert:", msg); };
-                    win.confirm = function() { return true; };
-                }
+                    if (win.alert.toString().includes('native code')) {
+                        win.alert = function(msg) { console.log("Suppressed alert:", msg); };
+                        win.confirm = function() { return true; };
+                    }
+                    if (win.Module && win.Module.errorHandler) {
+                        win.Module.errorHandler = function() { return true; };
+                    }
+                    if (doc && !doc.getElementById('light-suppress-styles')) {
+                        const style = doc.createElement('style');
+                        style.id = 'light-suppress-styles';
+                        style.textContent = `
+                            #errorBrowser, #error-browser, .error, .webgl-error-message, .webgl-error, #unity-error { 
+                                display: none !important; opacity: 0 !important; pointer-events: none !important; visibility: hidden !important;
+                            }
+                        `;
+                        if(doc.head) doc.head.appendChild(style);
+                    }
+                } catch(e) { }
+            }, 10);
 
-                // 2. Kill Unity Error Handler
-                // Unity often defines this specific property
-                if (win.Module && win.Module.errorHandler) {
-                    win.Module.errorHandler = function() { return true; };
-                }
+            setTimeout(() => clearInterval(suppressorInterval), 8000);
 
-                // 3. Hide HTML Error Overlays (Visual Red Boxes)
-                if (doc && !doc.getElementById('void-suppress-styles')) {
-                    const style = doc.createElement('style');
-                    style.id = 'void-suppress-styles';
-                    style.textContent = `
-                        #errorBrowser, #error-browser, .error, .webgl-error-message, .webgl-error, #unity-error { 
-                            display: none !important; 
-                            opacity: 0 !important; 
-                            pointer-events: none !important;
-                            visibility: hidden !important;
-                        }
-                    `;
-                    if(doc.head) doc.head.appendChild(style);
-                }
+            ifr.onload = () => {
+                 if(typeof injectCursorIntoFrame === 'function') injectCursorIntoFrame(ifr);
+                 try {
+                     const win = ifr.contentWindow;
+                     win.onerror = function(msg) {
+                         if (String(msg).includes('callbacks') || String(msg).includes('e.data.id')) return true;
+                     };
+                 } catch(e) {}
+            };
 
-            } catch(e) {
-                // Cross-origin restrictions may occur until proxy fully takes over
-            }
-        }, 10);
+            activeContent.innerHTML = '';
+            activeContent.appendChild(ifr);
 
-        // Stop the loop after 8 seconds (game should be loaded by then)
-        setTimeout(() => clearInterval(suppressorInterval), 8000);
-
-        ifr.onload = () => {
-             // Inject cursor script one last time to be sure
-             if(typeof injectCursorIntoFrame === 'function') injectCursorIntoFrame(ifr);
-             
-             // One final attempt to inject the persistent error handler
-             try {
-                 const win = ifr.contentWindow;
-                 win.onerror = function(msg) {
-                     if (String(msg).includes('callbacks') || String(msg).includes('e.data.id')) return true;
-                 };
-             } catch(e) {}
-        };
-
-        activeContent.innerHTML = '';
-        activeContent.appendChild(ifr);
-
-    } catch(e) {
-        activeContent.innerHTML = `<div style="color:#ef4444; padding:20px; text-align:center;">error: ${e.message}</div>`;
+        } catch(e) {
+            activeContent.innerHTML = `<div style="color:#ef4444; padding:20px; text-align:center;">error: ${e.message}</div>`;
+            showToast("system", "experiencing errors? switch to ultraviolet for games temporarily or perminatly");
+        }
     }
-}
 
     window.saveCustomCSS = function() {
         const css = document.getElementById('custom-css-input').value;
         document.getElementById('custom-css-block').textContent = css;
-        localStorage.setItem('void-custom-css', css);
+        localStorage.setItem('light-custom-css', css);
         showToast('settings saved', 'custom css applied');
     }
 window.submitFeedback = async function () {
@@ -1926,7 +2241,6 @@ window.submitFeedback = async function () {
   _0x1ac71b.innerHTML = "<i class=\"fas fa-circle-notch fa-spin\"></i> sending...";
 
   try {
-    // FIX: Added "/profiles" to the path
     const _0x14deed = await fetch("/profiles/api/feedback", {
       'method': "POST",
       'headers': {
@@ -1938,7 +2252,6 @@ window.submitFeedback = async function () {
     });
 
     if (!_0x14deed.ok) {
-      // Log the actual status text to help debugging
       throw new Error(`Server Error: ${_0x14deed.status}`);
     }
 
@@ -1970,19 +2283,18 @@ window.submitFeedback = async function () {
     }
 
     window.setCloakImg = function(img) {
-        voidCloakImg = img;
-        localStorage.setItem('void-cloak-img', img);
+        lightCloakImg = img;
+        localStorage.setItem('light-cloak-img', img);
         document.querySelectorAll('.cloak-thumb').forEach(t => t.classList.remove('selected'));
         document.querySelector(`.cloak-thumb[data-img="${img}"]`)?.classList.add('selected');
     }
 
     window.toggleCloak = function(isChecked) {
-        voidCloakEnabled = isChecked;
-        localStorage.setItem('void-cloak-enabled', isChecked);
+        lightCloakEnabled = isChecked;
+        localStorage.setItem('light-cloak-enabled', isChecked);
     }
 
 function initSettingsListeners(el) {
-        // --- 1. SLIDERS & INPUTS ---
         const radius = localStorage.getItem('ez-radius'); 
         if(radius && el.querySelector('#slider-radius')) el.querySelector('#slider-radius').value = radius;
         
@@ -1992,43 +2304,33 @@ function initSettingsListeners(el) {
         const font = localStorage.getItem('ez-font'); 
         if(font && el.querySelector('#select-font')) el.querySelector('#select-font').value = font;
 
-        const css = localStorage.getItem('void-custom-css'); 
+        const css = localStorage.getItem('light-custom-css'); 
         if(css && el.querySelector('#custom-css-input')) el.querySelector('#custom-css-input').value = css;
 
-        // --- 2. DROPDOWNS (System) ---
-        // Game Provider
-        const gp = localStorage.getItem('void-game-provider'); 
+        const gp = localStorage.getItem('light-game-provider'); 
         if(gp && el.querySelector('#setting-game-provider')) {
             el.querySelector('#setting-game-provider').value = gp;
         }
 
-        // Proxy Backend (Scramjet/UV)
-        const pt = localStorage.getItem('void-proxy-transport');
+        const pt = localStorage.getItem('light-proxy-transport');
         if(pt && el.querySelector('#setting-proxy-transport')) {
             el.querySelector('#setting-proxy-transport').value = pt;
         }
 
-        // --- 3. VISUAL SELECTION (Wallpapers & Cloaks) ---
         const wall = localStorage.getItem('vøid-wallpaper'); 
         if(wall) {
-            // Remove 'selected' class from all, add to current
             el.querySelectorAll('.wp-thumb:not(.cloak-thumb)').forEach(t => t.classList.remove('selected'));
             el.querySelector(`.wp-thumb[data-wp="${wall}"]`)?.classList.add('selected');
         }
 
-        const cloak = localStorage.getItem('void-cloak-img'); 
+        const cloak = localStorage.getItem('light-cloak-img'); 
         if(cloak) {
             el.querySelectorAll('.cloak-thumb').forEach(t => t.classList.remove('selected'));
             el.querySelector(`.cloak-thumb[data-img="${cloak}"]`)?.classList.add('selected');
         }
 
-        // --- 4. COLOR PICKERS ---
-        // We use a timeout to wait for the HTML to fully render so we can read the CSS variables
         setTimeout(() => {
-             const styles = getComputedStyle(document.documentElement);
-             
-             // Helper: The color input needs HEX (#ffffff), but CSS vars might be RGB
-             // Note: Assumes your global rgb2hex function exists, or we use a safe fallback
+            const styles = getComputedStyle(document.body);             
              const safeHex = (prop) => {
                  const val = styles.getPropertyValue(prop).trim();
                  return (window.rgb2hex ? window.rgb2hex(val) : val); 
@@ -2071,7 +2373,7 @@ function initSettingsListeners(el) {
     }
 
     function applySavedSettings() {
-        const layout = localStorage.getItem('void-layout'); if(layout === 'bottom') setLayout('bottom');
+        const layout = localStorage.getItem('light-layout'); if(layout === 'bottom') setLayout('bottom');
         const theme = localStorage.getItem('vøid-theme'); if(theme) { document.body.classList.add(theme); handleThemeEffects(theme); }
 
         const customBg = localStorage.getItem('custom-bg'); if(customBg) document.documentElement.style.setProperty('--bg-dark', customBg);
@@ -2080,7 +2382,7 @@ function initSettingsListeners(el) {
         const customAccent = localStorage.getItem('custom-accent'); if(customAccent) document.documentElement.style.setProperty('--accent-primary', customAccent);
 
         const wall = localStorage.getItem('vøid-wallpaper'); if(wall) document.documentElement.style.setProperty('--wallpaper', `url('${wall}')`);
-        const css = localStorage.getItem('void-custom-css'); if(css) document.getElementById('custom-css-block').textContent = css;
+        const css = localStorage.getItem('light-custom-css'); if(css) document.getElementById('custom-css-block').textContent = css;
 
         const radius = localStorage.getItem('ez-radius'); if(radius) window.setRadius(radius);
         const glass = localStorage.getItem('ez-glass'); if(glass) window.setGlass(glass);
@@ -2150,10 +2452,8 @@ function createProfileWindowContent() {
 function setupProfileWindowHandlers(el) {
     if (!el) return;
 
-    // Trigger UI update to populate list
     updateProfileUI();
 
-    // --- 1. GRAB ELEMENTS ---
     const tabFriends = el.querySelector('#tab-friends');
     const tabGroups = el.querySelector('#tab-groups');
     
@@ -2170,9 +2470,7 @@ function setupProfileWindowHandlers(el) {
     const btnChangeName = el.querySelector('#btn-change-name');
     const inpChangeName = el.querySelector('#new-username-input');
 
-    // --- 2. ATTACH LISTENERS (With Safety Checks) ---
 
-    // Tabs
     if (tabFriends) {
         tabFriends.onclick = () => { 
             tabFriends.classList.add('active'); 
@@ -2188,7 +2486,6 @@ function setupProfileWindowHandlers(el) {
         };
     }
 
-    // Messaging
     const sendMsg = () => {
         if (!inpMsg || !currentProfileKey) return;
         const txt = inpMsg.value.trim();
@@ -2196,17 +2493,14 @@ function setupProfileWindowHandlers(el) {
 
         if (profileSocket && profileSocket.connected) {
             if (currentProfileKey.startsWith('dm:')) {
-                // Parse DM Key: "dm:user1|user2"
                 const parts = currentProfileKey.split(':')[1].split('|');
                 const target = parts.find(u => u !== myProfileId) || parts[0]; // Fallback for self-dm
                 profileSocket.emit('sendDM', { target, text: txt });
             } else {
-                // Group Key: "group:123"
                 const groupId = currentProfileKey.split(':')[1];
                 profileSocket.emit('sendGroup', { groupId, text: txt });
             }
         } else {
-            // Offline/Fallback mode (just echo for UI testing)
             renderMsg({ from: myProfileId, text: txt });
         }
         inpMsg.value = '';
@@ -2215,7 +2509,6 @@ function setupProfileWindowHandlers(el) {
     if (btnSend) btnSend.onclick = sendMsg;
     if (inpMsg) inpMsg.onkeypress = (e) => { if (e.key === 'Enter') sendMsg(); };
 
-    // Create Group
     if (btnCreate) {
         btnCreate.onclick = () => {
             const name = inpGrpName ? inpGrpName.value : '';
@@ -2230,7 +2523,6 @@ function setupProfileWindowHandlers(el) {
         };
     }
 
-    // Add Friend
     const handleAddFriend = () => {
         const target = inpAddFriend ? inpAddFriend.value.trim() : '';
         if (target && profileSocket) {
@@ -2242,7 +2534,6 @@ function setupProfileWindowHandlers(el) {
     if (btnAddFriend) btnAddFriend.onclick = handleAddFriend;
     if (inpAddFriend) inpAddFriend.onkeypress = (e) => { if (e.key === 'Enter') handleAddFriend(); };
 
-    // Change Username
     if (btnChangeName) {
         btnChangeName.onclick = () => {
             const newName = inpChangeName ? inpChangeName.value.trim() : '';
@@ -2289,7 +2580,6 @@ function renderMsg(entry) {
         const div = document.createElement('div'); 
         div.className = `msg-bubble ${isMe ? 'me' : 'them'}`;
         
-        // UPDATED: Separated content and footer
         div.innerHTML = `
             <div class="msg-text">${entry.text.replace(/</g, "&lt;")}</div>
             <div class="msg-footer">${isMe ? 'you' : entry.from}</div>
@@ -2337,7 +2627,6 @@ function renderMsg(entry) {
         document.querySelectorAll('.app-icon').forEach(icon => { icon.onclick = () => addTab(icon.dataset.appId); });
         const toggle = (id) => { const p = document.getElementById(id); p.style.display = p.style.display === 'block' ? 'none' : 'block'; };
         document.getElementById('notification-icon').onclick = () => toggle('notification-center');
-        document.getElementById('volume-icon').onclick = () => toggle('volume-control');
         
         if(navigator.getBattery) navigator.getBattery().then(b => {
             const update = () => { document.getElementById('battery-percent').textContent = Math.round(b.level*100) + '%'; };
@@ -2348,10 +2637,9 @@ function renderMsg(entry) {
         addTab('newtab');
     };
 // ==========================================
-    // PERMANENT ADMIN TOOLBOX (Paste at bottom of script)
+    // LETS GOOOOOOOO ADMIN TIMEEEEEEEEEEEEEEEEEEEE
     // ==========================================
 
-    // 1. Password Helper
     window._getAdminPass = function() {
         if (!window._sessionPass) {
             window._sessionPass = prompt("🔒 SECURITY CHECK\nEnter Admin Password:");
@@ -2359,39 +2647,32 @@ function renderMsg(entry) {
         return window._sessionPass;
     };
 
-    // 2. List Bans
     window.adminList = function() {
         const p = window._getAdminPass();
         if(p && window.profileSocket) window.profileSocket.emit('adminListBans', { password: p });
         else console.error("Socket not ready or password cancelled.");
     };
 
-    // 3. Ban User
     window.adminBan = function(user, reason="Banned") {
         const p = window._getAdminPass();
         if(p && window.profileSocket) window.profileSocket.emit('adminBan', { password: p, target: user, durationMinutes: null, reason });
     };
 
-    // 4. Unban IP
     window.adminUnban = function(ip) {
         const p = window._getAdminPass();
         if(p && window.profileSocket) window.profileSocket.emit('adminUnban', { password: p, ip });
     };
 
-    // 5. Warn User
     window.adminWarn = function(user, message) {
         const p = window._getAdminPass();
         if(p && window.profileSocket) window.profileSocket.emit('adminWarn', { password: p, target: user, message });
     };
 
-    // 6. Reset Password (If you typed it wrong)
     window.adminLogout = function() {
         window._sessionPass = null;
         console.log("Session cleared.");
     };
 
-    // Auto-clear bad password if server rejects it
-    // We wait 3 seconds to ensure socket is connected before attaching listener
     setTimeout(() => {
         if(window.profileSocket) {
             window.profileSocket.on("system", (data) => {
@@ -2400,14 +2681,177 @@ function renderMsg(entry) {
                     window._sessionPass = null; 
                 }
             });
-            console.log("✅ Admin Tools Loaded & Ready.");
+            console.log("admin mode locked n loaded my manssssss.");
         }
     }, 3000);
-    // 5. List Online Users (Who is here?)
     window.adminWho = function() {
         const p = window._getAdminPass();
         if(p && window.profileSocket) window.profileSocket.emit('adminListUsers', { password: p });
     };
+    // more uv and scramjet logic this really made me go insane
+    window.getProxyUrl = function(targetUrl) {
+            const type = localStorage.getItem('light-proxy-transport') || 'uv';
+            
+            if (type === 'scramjet') {
+                if (window.scramjet) return window.scramjet.encodeUrl(targetUrl);
+                return '/service/' + encodeURIComponent(targetUrl);
+            } else {
+                if (window.__uv$config) return __uv$config.prefix + __uv$config.encodeUrl(targetUrl);
+                return '/uv/service/' + encodeURIComponent(targetUrl);
+            }
+        }
 </script>
-</body>
+<script type="module">
+    import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.14.0';
+
+    env.allowLocalModels = false; 
+
+    const themeAnchors = [
+        { desc: "ocean water blue calm sea cold mystery deep", colors: { bg: "#0f172a", nav: "#1e293b", text: "#e2e8f0", accent: "#38bdf8" } },
+        { desc: "ice winter snow frozen cold white glacier north", colors: { bg: "#1e293b", nav: "#334155", text: "#f1f5f9", accent: "#a5f3fc" } },
+        { desc: "teal aqua turquoise tropical water clear pool", colors: { bg: "#042f2e", nav: "#115e59", text: "#ccfbf1", accent: "#14b8a6" } },
+        { desc: "midnight night sky deep blue stars sleep dark", colors: { bg: "#020617", nav: "#172554", text: "#bfdbfe", accent: "#60a5fa" } },
+        { desc: "slate corporate business gray professional clean", colors: { bg: "#111827", nav: "#1f2937", text: "#f9fafb", accent: "#9ca3af" } },
+        { desc: "fire red hot angry danger war blood intensity", colors: { bg: "#450a0a", nav: "#7f1d1d", text: "#fecaca", accent: "#ef4444" } },
+        { desc: "love pink cute romance girl soft flower sweet", colors: { bg: "#500724", nav: "#831843", text: "#fbcfe8", accent: "#ec4899" } },
+        { desc: "crimson horror vampire murder evil dark blood", colors: { bg: "#250202", nav: "#450a0a", text: "#ffcccc", accent: "#dc2626" } },
+        { desc: "peach soft coral pastel sunset fruit warm", colors: { bg: "#431407", nav: "#7c2d12", text: "#ffedd5", accent: "#fb7185" } },
+        { desc: "sakura cherry blossom japan spring pink white", colors: { bg: "#3f0e1a", nav: "#831843", text: "#fff1f2", accent: "#fda4af" } },
+        { desc: "nature forest green tree life growth zen earth", colors: { bg: "#052e16", nav: "#14532d", text: "#dcfce7", accent: "#22c55e" } },
+        { desc: "toxic acid poison nuclear radioactive neon green waste", colors: { bg: "#022c22", nav: "#064e3b", text: "#ccfbf1", accent: "#84cc16" } },
+        { desc: "mint fresh soft pastel green clean", colors: { bg: "#064e3b", nav: "#065f46", text: "#ecfdf5", accent: "#34d399" } },
+        { desc: "hacker matrix code terminal digital system", colors: { bg: "#000000", nav: "#050505", text: "#00ff41", accent: "#008f11" } },
+        { desc: "cyberpunk neon purple matrix hacker tech city future", colors: { bg: "#0f0717", nav: "#2e1065", text: "#e9d5ff", accent: "#a855f7" } },
+        { desc: "galaxy space universe stars nebula violet void", colors: { bg: "#1e1b4b", nav: "#312e81", text: "#e0e7ff", accent: "#818cf8" } },
+        { desc: "lavender pastel soft calm sleep dream flower purple", colors: { bg: "#2e1065", nav: "#4c1d95", text: "#f3e8ff", accent: "#c084fc" } },
+        { desc: "royal luxury gold money rich wealth expensive", colors: { bg: "#1a1a1a", nav: "#2d2d2d", text: "#ffffff", accent: "#fbbf24" } },
+        { desc: "sunset orange warm nostalgia retro vaporwave sun", colors: { bg: "#431407", nav: "#7c2d12", text: "#ffedd5", accent: "#f97316" } },
+        { desc: "lemon yellow bright citrus sour summer happy", colors: { bg: "#422006", nav: "#713f12", text: "#fef08a", accent: "#eab308" } },
+        { desc: "honey bee sweet gold amber warm", colors: { bg: "#451a03", nav: "#78350f", text: "#fef3c7", accent: "#d97706" } },
+        { desc: "coffee brown cozy wood study library autumn book", colors: { bg: "#2a1810", nav: "#4a2c20", text: "#eaddcf", accent: "#d97706" } },
+        { desc: "chocolate dark dessert sweet cocoa food", colors: { bg: "#1f100b", nav: "#381e16", text: "#fae8e0", accent: "#a8715a" } },
+        { desc: "sand desert beige dust dry dune ancient", colors: { bg: "#292524", nav: "#44403c", text: "#f5f5f4", accent: "#d6d3d1" } },
+        { desc: "dark void abyss black scary horror night emptiness", colors: { bg: "#000000", nav: "#0a0a0a", text: "#a3a3a3", accent: "#ffffff" } },
+        { desc: "light day white bright clean minimal paper holy", colors: { bg: "#ffffff", nav: "#f1f5f9", text: "#0f172a", accent: "#0f172a" } },
+        { desc: "vaporwave retro 80s aesthetic cyan pink synthwave", colors: { bg: "#160f29", nav: "#240046", text: "#e0aaff", accent: "#ff006e" } },
+        { desc: "steel metal silver iron gray robot machine", colors: { bg: "#1c1917", nav: "#292524", text: "#d6d3d1", accent: "#a8a29e" } },
+        { desc: "military army camo olive tactical war", colors: { bg: "#1a2e05", nav: "#365314", text: "#ecfccb", accent: "#65a30d" } },
+        { desc: "cotton candy pastel sweet fun bright party", colors: { bg: "#2e1065", nav: "#4c1d95", text: "#fbcfe8", accent: "#22d3ee" } }
+    ];
+
+    let extractor = null;
+
+
+    function hexToRgb(hex) {
+        const bigint = parseInt(hex.replace("#", ""), 16);
+        return [(bigint >> 16) & 255, (bigint >> 8) & 255, bigint & 255];
+    }
+
+    function rgbToHex(r, g, b) {
+        return "#" + ((1 << 24) + (Math.round(r) << 16) + (Math.round(g) << 8) + Math.round(b)).toString(16).slice(1);
+    }
+
+    function mixColors(hex1, hex2, factor) {
+        const rgb1 = hexToRgb(hex1);
+        const rgb2 = hexToRgb(hex2);
+        const r = rgb1[0] + (rgb2[0] - rgb1[0]) * factor;
+        const g = rgb1[1] + (rgb2[1] - rgb1[1]) * factor;
+        const b = rgb1[2] + (rgb2[2] - rgb1[2]) * factor;
+        return rgbToHex(r, g, b);
+    }
+
+    function cosineSimilarity(a, b) {
+        let dot = 0, magA = 0, magB = 0;
+        for (let i = 0; i < a.length; i++) {
+            dot += a[i] * b[i];
+            magA += a[i] * a[i];
+            magB += b[i] * b[i];
+        }
+        return dot / (Math.sqrt(magA) * Math.sqrt(magB));
+    }
+    window.generateNeuralTheme = async function() {
+        const input = document.getElementById('ai-prompt');
+        const btn = document.getElementById('btn-generate-ai');
+        const prompt = input.value.trim();
+
+        if (!prompt) return showToast('ai', 'please enter a prompt');
+
+        const originalText = btn.innerHTML;
+        btn.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> dreaming...`;
+        btn.disabled = true;
+
+        try {
+            if (!extractor) {
+                showToast('ai', 'loading neural engine (23mb)...');
+                extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+            }
+
+            const output = await extractor(prompt, { pooling: 'mean', normalize: true });
+            const promptEmbedding = output.data;
+
+            let scoredThemes = [];
+            for (const theme of themeAnchors) {
+                const themeOutput = await extractor(theme.desc, { pooling: 'mean', normalize: true });
+                const score = cosineSimilarity(promptEmbedding, themeOutput.data);
+                scoredThemes.push({ theme, score });
+            }
+
+            scoredThemes.sort((a, b) => b.score - a.score);
+            
+            const match1 = scoredThemes[0];
+            const match2 = scoredThemes[1];
+
+            console.log(`Primary: "${match1.theme.desc.split(' ')[0]}" (${match1.score.toFixed(2)})`);
+            console.log(`Secondary: "${match2.theme.desc.split(' ')[0]}" (${match2.score.toFixed(2)})`);
+
+            let finalColors = {};
+
+            let mixRatio = 0;
+            
+            if (match2.score > 0.2) {
+                const totalScore = match1.score + match2.score;
+                mixRatio = match2.score / totalScore; 
+                if(mixRatio > 0.5) mixRatio = 0.5;
+            }
+
+            finalColors.bg = mixColors(match1.theme.colors.bg, match2.theme.colors.bg, mixRatio);
+            finalColors.nav = mixColors(match1.theme.colors.nav, match2.theme.colors.nav, mixRatio);
+            
+            finalColors.accent = mixColors(match1.theme.colors.accent, match2.theme.colors.accent, mixRatio * 0.8);
+
+            finalColors.text = match1.theme.colors.text;
+
+            setCustomColor('--bg-dark', finalColors.bg);
+            setCustomColor('--nav-bg', finalColors.nav);
+            setCustomColor('--text-primary', finalColors.text);
+            setCustomColor('--accent-primary', finalColors.accent);
+            
+            const saveBtn = document.getElementById('btn-save-theme');
+            if(saveBtn) saveBtn.style.display = 'inline-block';
+            
+            window.currentThemeCache = {
+                name: prompt,
+                colors: finalColors,
+                timestamp: Date.now()
+            };
+
+            setTimeout(() => {
+                if(document.getElementById('cp-bg')) document.getElementById('cp-bg').value = finalColors.bg;
+                if(document.getElementById('cp-nav')) document.getElementById('cp-nav').value = finalColors.nav;
+                if(document.getElementById('cp-text')) document.getElementById('cp-text').value = finalColors.text;
+                if(document.getElementById('cp-accent')) document.getElementById('cp-accent').value = finalColors.accent;
+            }, 100);
+
+            showToast('ai', `generated unique theme`);
+
+        } catch (e) {
+            console.error(e);
+            showToast('error', 'neural engine error. see console.');
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    };
+</script>
+  </body>
 </html>

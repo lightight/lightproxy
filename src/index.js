@@ -12,13 +12,18 @@ import YTDlpWrap from 'yt-dlp-wrap';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+// --- PATH CONFIGURATION ---
+// Base public paths
 const publicPath = join(__dirname, "../public");
 const musicPublicPath = join(__dirname, "../music/public");
 const profilesPublicPath = join(__dirname, "../profiles/public");
 
-// Paths
-const scramjetPath = join(__dirname, "../node_modules/@mercuryworkshop/scramjet/dist");
-const uvPath = join(__dirname, "../node_modules/@titaniumnetwork-dev/ultraviolet/dist");
+// Proxy paths - UPDATED to use local folders for SJ and UV
+const scramjetPath = join(__dirname, "../scramjet");
+const uvPath = join(__dirname, "../uv");
+
+// These remain in node_modules unless you have local folders for them too
 const epoxyPath = join(__dirname, "../node_modules/@mercuryworkshop/epoxy-transport/dist");
 const baremuxPath = join(__dirname, "../node_modules/@mercuryworkshop/bare-mux/dist");
 
@@ -119,8 +124,11 @@ const swHeader = (res, path) => {
     }
 };
 
+// Registered Paths with Service Worker Headers
 fastify.register(fastifyStatic, { root: scramjetPath, prefix: "/scramjet/", decorateReply: false, setHeaders: swHeader });
 fastify.register(fastifyStatic, { root: uvPath, prefix: "/uv/", decorateReply: false, setHeaders: swHeader });
+
+// Standard Paths
 fastify.register(fastifyStatic, { root: epoxyPath, prefix: "/epoxy/", decorateReply: false });
 fastify.register(fastifyStatic, { root: baremuxPath, prefix: "/baremux/", decorateReply: false });
 fastify.register(profilesPlugin, { prefix: "/profiles" });
