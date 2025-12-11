@@ -67,7 +67,6 @@
     </script>
     <script src="jor1k/demos/jor1k-master-min.js"></script>
     <script>
-        // Shim to expose Jor1k globals if they are hidden behind require()
         if (window.require) {
             try {
                 window.Jor1k = window.require("Jor1k");
@@ -593,8 +592,6 @@
         #exit-modal .modal-title {
             color: #ef4444;
         }
-
-        /* Keep warning red */
 
         .modal-text {
             font-size: 13px;
@@ -1627,7 +1624,6 @@
             color: var(--text-primary);
         }
 
-        /* --- lightOS Desktop --- */
         body.light-os-mode {
             overflow: hidden;
         }
@@ -1926,19 +1922,16 @@
         </div>
     </div>
 
-    <!-- lightOS Desktop Container -->
     <div id="desktop-container">
         <div class="desktop-icons" id="desktop-icons-area"></div>
         <div id="os-taskbar">
             <div class="taskbar-start">
                 <div class="start-btn" onclick="toggleStartMenu()" title="Start"><i class="fab fa-windows"></i></div>
                 <div class="taskbar-apps" id="taskbar-apps-area">
-                    <!-- Taskbar items will be injected here -->
                 </div>
             </div>
 
             <div style="display:flex; align-items:center; gap:20px;">
-                <!-- System Icons Removed -->
                 <div id="taskbar-clock" style="font-size: 13px; color: #fff; font-weight: 500; text-align:right;">
                     00:00<br><span style="font-size:10px; opacity:0.6; font-weight:400">12/10/2025</span></div>
             </div>
@@ -1946,7 +1939,6 @@
     </div>
 
     <style>
-        /* Clock Positioning */
         #os-taskbar.clock-center #taskbar-clock {
             position: absolute;
             left: 50%;
@@ -3367,7 +3359,6 @@
 
 
         window.setThemePreset = function (theme) {
-            // Preserve OS mode
             const isOS = document.body.classList.contains('light-os-mode');
 
             document.body.className = theme;
@@ -3771,7 +3762,6 @@
                 localStorage.clear(); sessionStorage.clear(); location.reload();
             }
         }
-        // --- lightOS Desktop Logic ---
         class VirtualFS {
             constructor() {
                 this.fs = JSON.parse(localStorage.getItem('light-vfs')) || {
@@ -3801,7 +3791,7 @@
                 localStorage.setItem('light-vfs', JSON.stringify(this.fs));
             }
 
-            resolve(path) { return this.fs.root; } // Simplified
+            resolve(path) { return this.fs.root; }
 
             getNode(pathArray) {
                 let current = this.fs.root;
@@ -3827,7 +3817,6 @@
 
         window.toggleDesktopMode = function (enabled) {
             if (enabled) {
-                // Show custom modal
                 const modal = document.getElementById('lightos-warn-modal');
                 const btn = document.getElementById('confirm-lightos-btn');
 
@@ -3838,7 +3827,6 @@
                     enableLightOS();
                 };
             } else {
-                // Disable immediately
                 localStorage.setItem('light-os-enabled', 'false');
                 showToast('system', 'switching to classic...');
                 setTimeout(() => location.reload(), 500);
@@ -3853,8 +3841,6 @@
 
         window.closeLightOSModal = function () {
             document.getElementById('lightos-warn-modal').classList.remove('active');
-            // Revert strict switch state if possible, but simplest is just do nothing (user cancelled)
-            // Ideally we'd toggle the switch back in settings UI but it will reset on reload anyway if not saved
         }
 
         window.initLightOS = function () {
@@ -3996,17 +3982,13 @@
             console.log("[Window] Closing:", winId);
             const win = document.getElementById(winId);
             if (!win) return;
-            // Robust app ID extraction
             let appId = winId.replace('win-', '');
-            // Handle if winId has suffixes like 'win-terminal-123' -> appId should be 'terminal'
             if (appId.startsWith('terminal')) appId = 'terminal';
 
-            // SPECIAL HANDLING: Terminal and Browser (hide instead of close)
             if (appId === 'terminal') {
                 const termWrapper = win.querySelector('[id^="term-wrapper-"]');
                 console.log("[Window] TermWrapper found?", !!termWrapper);
                 if (termWrapper) {
-                    // Move terminal wrapper to body to keep it alive
                     termWrapper.style.display = 'none';
                     termWrapper.id = "background-terminal-instance";
                     document.body.appendChild(termWrapper);
@@ -4015,7 +3997,6 @@
                     console.warn("[Window] Could not find terminal wrapper to background!");
                 }
             }
-            // Browser handling moved to setTimeout to prevent flash
 
             win.style.opacity = '0';
             win.style.transform = 'scale(0.9)';
@@ -4032,7 +4013,6 @@
             }, 200);
 
             osWindows = osWindows.filter(id => id !== winId);
-            // removeTaskbarItem might expect 'terminal' not 'terminal-123'
             removeTaskbarItem(appId);
         }
 
@@ -4151,34 +4131,28 @@
             if (el) el.classList.remove('active');
         }
 
-        // --- Renderers ---
 
-        // Jor1k Integration
         function renderTerminal(container) {
             container.style.backgroundColor = '#000000';
             container.style.padding = '0';
             container.style.overflow = 'hidden';
 
-            // Resolve ID: Check for background instance first
             let termId, ttyId, fbId, statsId, clipboardId;
             const backgroundTerm = document.getElementById("background-terminal-instance");
 
             if (backgroundTerm) {
-                // Re-attach existing session
                 const table = backgroundTerm.querySelector('table');
                 if (table && table.id) {
                     ttyId = table.id;
                     termId = ttyId.replace('tty-', '');
                 } else {
-                    // Fallback (shouldn't happen)
                     termId = Math.random().toString(36).substr(2, 9);
                 }
 
                 container.innerHTML = "";
                 backgroundTerm.style.display = "block";
-                backgroundTerm.id = `term-wrapper-${termId}`; // Restore ID so closeOSWindow can find it
+                backgroundTerm.id = `term-wrapper-${termId}`;
 
-                // Keep dimensions 
                 backgroundTerm.style.width = "100%";
                 backgroundTerm.style.height = "100%";
 
@@ -4195,13 +4169,11 @@
                 const wrapper = container.querySelector('#term-reattached-wrapper');
                 wrapper.appendChild(backgroundTerm);
 
-                // Focus the terminal input if accessible
                 if (window.currentJor1k) window.currentJor1k.terminput.OnKeyPress({ preventDefault: () => { } });
 
                 return;
             }
 
-            // Create a unique ID for this terminal instance
             termId = Math.random().toString(36).substr(2, 9);
             ttyId = `tty-${termId}`;
             fbId = `fb-${termId}`;
@@ -4222,7 +4194,6 @@
                 </div>
             `;
 
-            // Wait for DOM to update
             setTimeout(() => {
                 if (typeof Jor1k === 'undefined') {
                     const err = document.getElementById(`term-wrapper-${termId}`);
@@ -4230,7 +4201,6 @@
                     return;
                 }
 
-                // Manually create worker with absolute path since Jor1k defaults to relative 'jor1k-worker-min.js'
                 const worker = new Worker("/jor1k/demos/jor1k-worker-min.js");
 
 
@@ -4255,16 +4225,15 @@
                     clipboardid: clipboardId,
                     statsid: statsId,
                     fps: 10,
-                    relayURL: "", // Disabled to prevent connection errors
+                    relayURL: "",
                     userid: "user"
                 };
 
-                // Start the emulator
+
                 try {
                     const jor1k = new Jor1k(params);
-                    window.currentJor1k = jor1k; // Expose globally
+                    window.currentJor1k = jor1k;
 
-                    // --- PERSISTENCE HOOK (Scoped correctly) ---
                     worker.addEventListener('message', (e) => {
                         if (e.data.command === "tar") {
                             console.log("[Persistence] Received TAR snapshot. Size:", e.data.data.byteLength);
@@ -4272,7 +4241,6 @@
                         }
                     });
 
-                    // --- Persistence Layer (IndexedDB) ---
                     const DB_NAME = "LightOS_FS";
                     const STORE_NAME = "snapshots";
 
@@ -4306,15 +4274,12 @@
                         });
                     }
 
-                    // RESTORE: Check if we have a backup and load it
-                    // RESTORE: Check if we have a backup and load it
                     loadSnapshot().then(backupData => {
                         if (backupData && backupData.byteLength > 0) {
                             console.log("[Persistence] Found backup, restoring...");
                             const restorePath = "/home/restore.tar";
                             jor1k.fs.MergeBinaryFile(restorePath, new Uint8Array(backupData));
 
-                            // WAIT FOR BOOT: Poll terminal for specific welcome message
                             const checkBoot = setInterval(() => {
                                 const termElem = document.getElementById(ttyId);
                                 if (termElem && termElem.innerText.includes("Note, you can exit most programs")) {
@@ -4323,16 +4288,14 @@
 
                                     setTimeout(() => {
                                         console.log("[Persistence] Extracting backup...");
-                                        // Clear current line (ctrl+u) just in case, then run command
                                         const cmd = `\x15tar -xf ${restorePath} -C /home/user\nrm ${restorePath}\nclear\n`;
                                         for (let i = 0; i < cmd.length; i++) jor1k.SendChars([cmd.charCodeAt(i)]);
-                                    }, 1000); // User requested 1s wait after note
+                                    }, 1000);
                                 }
                             }, 500);
                         }
                     });
 
-                    // OVERRIDE: Intercept Sync to save locally instead of uploading
                     jor1k.fs.OnSync = function (data) {
                         console.log("[Persistence] Syncing to IndexedDB...", data.byteLength);
                         saveSnapshot(data).then(() => {
@@ -4340,7 +4303,6 @@
                         }).catch(e => console.error("[Persistence] Save failed:", e));
                     };
 
-                    // --- LinuxFS Adapter ---
                     window.linuxFS = {
                         _state: {
                             path: null,
@@ -4348,7 +4310,6 @@
                             init: false
                         },
 
-                        // Helper to normalize path
                         normalize: (path) => {
                             if (Array.isArray(path)) path = path.join('/');
                             if (!path.startsWith('/')) path = '/' + path;
@@ -4356,18 +4317,16 @@
                             return path;
                         },
 
-                        // Helper to send keys to terminal
                         sendCmd: (cmd) => {
                             if (!window.currentJor1k) return;
                             const chars = [];
                             for (let i = 0; i < cmd.length; i++) {
                                 chars.push(cmd.charCodeAt(i));
                             }
-                            chars.push(13); // Enter
+                            chars.push(13);
                             window.currentJor1k.SendChars(chars);
                         },
 
-                        // Persistence Sync Trigger
                         sync: () => {
                             if (window.currentJor1k && window.currentJor1k.worker) {
                                 console.log("[Persistence] Requesting TAR snapshot...");
@@ -4375,48 +4334,37 @@
                             }
                         },
 
-                        // List directory contents
                         ls: (path) => {
                             if (!window.currentJor1k) return Promise.reject("Jor1k not ready");
                             const fs = window.currentJor1k.fs;
                             path = window.linuxFS.normalize(path);
 
                             return new Promise((resolve, reject) => {
-                                // COMMAND INJECTION STRATEGY
-                                // We inject 'ls -1p PATH > .fs_index' to the terminal
-                                // Then read .fs_index
-
                                 const indexFile = "/home/user/.fs_index";
                                 const cmd = `ls -1p "${path}" > ${indexFile}`;
                                 window.linuxFS.sendCmd(cmd);
 
-                                // Wait for command to execute (scrappy but effective)
                                 setTimeout(() => {
                                     fs.ReadFile(indexFile, (data) => {
                                         if (!data) return resolve([]);
 
-                                        // Unpack object if needed (Jor1k often returns {name, data, size})
                                         if (data.data) {
                                             data = data.data;
                                         }
 
                                         try {
                                             let str = "";
-                                            // Handle various return types from Jor1k FS
                                             if (typeof data === 'string') {
                                                 str = data;
                                             } else if (data instanceof ArrayBuffer || data instanceof Uint8Array) {
                                                 str = new TextDecoder("utf-8").decode(data);
                                             } else if (Array.isArray(data)) {
-                                                // Convert plain array to Uint8Array
                                                 str = new TextDecoder("utf-8").decode(new Uint8Array(data));
                                             } else {
-                                                // Fallback: try JSON stringify or just invalid
                                                 console.warn("[LinuxFS] Unknown data type:", data);
                                                 str = "";
                                             }
 
-                                            // Parse ls -1p output (files have no suffix, dirs have /)
                                             const lines = str.split('\n').filter(l => l.trim().length > 0 && l.trim() !== '.fs_index');
 
                                             const items = lines.map(line => {
@@ -4434,23 +4382,21 @@
                                             resolve([]);
                                         }
                                     });
-                                }, 800); // 800ms wait for terminal to process
+                                }, 800);
                             });
                         },
 
-                        // Create Directory
                         mkdir: (path) => {
                             return new Promise((resolve, reject) => {
                                 if (!window.currentJor1k) return reject("Jor1k not ready");
                                 const fs = window.currentJor1k.fs;
                                 path = window.linuxFS.normalize(path);
                                 fs.CreateDirectory(path);
-                                window.linuxFS.sync(); // Persist change via TAR
+                                window.linuxFS.sync();
                                 setTimeout(resolve, 100);
                             });
                         },
 
-                        // Read File
                         readFile: (path) => {
                             return new Promise((resolve, reject) => {
                                 if (!window.currentJor1k) return reject("Jor1k not ready");
@@ -4459,7 +4405,6 @@
 
                                 fs.ReadFile(path, (data) => {
                                     if (data) {
-                                        // Unpack object if needed
                                         if (data.data) data = data.data;
 
                                         let text = "";
@@ -4487,7 +4432,6 @@
                             });
                         },
 
-                        // Write File
                         writeFile: (path, content) => {
                             return new Promise((resolve, reject) => {
                                 if (!window.currentJor1k) return reject("Jor1k not ready");
@@ -4498,7 +4442,7 @@
                                 const data = encoder.encode(content);
 
                                 fs.MergeBinaryFile(path, data);
-                                window.linuxFS.sync(); // Persist change via TAR
+                                window.linuxFS.sync();
                                 setTimeout(resolve, 100);
                             });
                         }
@@ -4510,13 +4454,11 @@
             }, 100);
         }
 
-        // Initialize explorer path if not set
         if (typeof window.explorerPath === 'undefined') window.explorerPath = '/home/user';
 
         function renderFileExplorer(container) {
             const refresh = async () => {
                 const path = window.explorerPath;
-                // Render Layout with Loading State first
                 container.innerHTML = `
                 <div style="display:flex; height:100%;">
                     <div style="width:150px; background:rgba(255,255,255,0.05); border-right:1px solid rgba(255,255,255,0.1); padding:10px;">
@@ -4542,7 +4484,6 @@
                 `;
 
                 try {
-                    // Check if Jor1k is running
                     if (!window.currentJor1k) {
                         const fileList = container.querySelector('#file-list');
                         if (fileList) fileList.innerHTML = `
@@ -4557,7 +4498,7 @@
 
                     const items = await window.linuxFS.ls(path);
                     const fileList = container.querySelector('#file-list');
-                    if (!fileList) return; // Window might have closed
+                    if (!fileList) return;
 
                     if (items.length === 0) {
                         fileList.innerHTML = '<div style="color:#666;">Empty directory</div>';
@@ -4569,7 +4510,6 @@
                         const color = item.type === 'dir' ? '#eab308' : '#fff';
                         const newPath = path === '/' ? '/' + item.name : path + '/' + item.name;
 
-                        // Click handler: Dig if dir, open in Notepad if file
                         const onClick = item.type === 'dir'
                             ? `window.explorerPath='${newPath}'; renderFileExplorer(this.closest('.window-content'));`
                             : `window.notepadCurrentPath='${newPath}'; openOSWindow('notepad');`;
@@ -4590,9 +4530,7 @@
             };
             refresh();
 
-            // Subscribe to updates (Auto-refresh)
             window.onFileSystemChange = () => {
-                // Only refresh if this window is still active
                 if (document.body.contains(container)) {
                     refresh();
                 }
@@ -4600,7 +4538,6 @@
         }
 
         function renderNotepad(container) {
-            // Default content
             let content = '';
             const path = window.notepadCurrentPath;
 
@@ -4620,7 +4557,6 @@
             const textarea = container.querySelector('#np-textarea');
             const loading = container.querySelector('#np-loading');
 
-            // Load file if path exists
             if (path) {
                 window.linuxFS.readFile(path)
                     .then(text => {
@@ -4633,21 +4569,19 @@
                     });
             }
 
-            // Save handler
             container.querySelector('#np-save-btn').onclick = async () => {
                 const text = textarea.value;
                 let savePath = path;
                 if (!savePath) {
-                    return; // Cancelled
+                    return;
                 }
 
                 try {
                     await window.linuxFS.writeFile(savePath, text);
                     showToast('notepad', 'File Saved!');
-                    // Update title if it was new
                     if (!path) {
                         window.notepadCurrentPath = savePath;
-                        renderNotepad(container); // Refresh to show new path
+                        renderNotepad(container);
                     }
                 } catch (e) {
                     alert("Save failed: " + e);
@@ -4682,7 +4616,7 @@
                     renderDesktopIcons();
                     renderStartMenu();
                     showToast('store', `${id} installed`);
-                    renderMarketplace(container); // Refresh
+                    renderMarketplace(container);
                 }
             };
 
@@ -4697,7 +4631,6 @@
                 }
             }
 
-            // Expose to global for onclick
             window.installApp = install;
             window.uninstallApp = uninstall;
 
@@ -4745,7 +4678,7 @@
 
                 document.addEventListener('click', (e) => {
                     const menu = document.getElementById('start-menu');
-                    const btn = document.querySelector('.start-btn'); // Needs .start-btn class on taskbar button
+                    const btn = document.querySelector('.start-btn');
                     if (menu && menu.classList.contains('active') && !menu.contains(e.target) && (!btn || !btn.contains(e.target))) {
                         menu.classList.remove('active');
                     }
@@ -4891,7 +4824,7 @@
                 if (profileSocket && profileSocket.connected) {
                     if (currentProfileKey.startsWith('dm:')) {
                         const parts = currentProfileKey.split(':')[1].split('|');
-                        const target = parts.find(u => u !== myProfileId) || parts[0]; // Fallback for self-dm
+                        const target = parts.find(u => u !== myProfileId) || parts[0];
                         profileSocket.emit('sendDM', { target, text: txt });
                     } else {
                         const groupId = currentProfileKey.split(':')[1];
@@ -5260,15 +5193,12 @@
         }
     </style>
     <script>
-        // --- Critical Startup Fixes ---
         (function () {
             try {
-                // 1. Ensure Apps Exist
                 let apps = JSON.parse(localStorage.getItem('light-installed-apps') || '[]');
                 const required = ['os-settings', 'profiles', 'music'];
                 let changed = false;
 
-                // If apps is empty/default, might need initialization
                 if (apps.length === 0) apps = ['browser', 'settings', 'os-settings', 'terminal', 'files', 'marketplace', 'profiles', 'music'];
 
                 required.forEach(req => {
@@ -5283,12 +5213,10 @@
                     console.log("[Fix] Updated installed apps:", apps);
                     if (window.renderDesktopIcons) window.renderDesktopIcons();
 
-                    // Force start menu refresh
                     const sm = document.getElementById('start-menu');
                     if (sm) sm.remove();
                 }
 
-                // 2. Restore Clock Position
                 const clockPos = localStorage.getItem('light-clock-pos');
                 if (clockPos) {
                     const taskbar = document.getElementById('os-taskbar');
